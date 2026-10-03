@@ -1,0 +1,20 @@
+{
+    "name": "ai",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "tsc",
+        "start": "tsc && node --env-file=.env dist/index.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@types/jest": "^30.0.0",
+        "@types/node": "^26.6.4",
+        "ai": "^7.0.127",
+        "typescript": "^7.0.2"
+    }
+}
