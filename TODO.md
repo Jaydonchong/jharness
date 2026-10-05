@@ -1,0 +1,7 @@
+- [x] Vercel SDK class
+- [x] Generate Text
+- [x] Multi step conversation
+- [] Tool Calling
+- [] State Preservationo
+- [] RAG
+- []  

@@ -1,38 +1,32 @@
-import { generateText } from "ai"
-import { VERCEL_AI_MODELS } from "./utils/model"
-import { MOCK_NEWS } from "./utils/data"
+import { ANewsSummarizer } from "./agents/newsSummarizer";
+import { AgentSession } from "./tool/agentSession";
+import { MOCK_NEWS } from "./utils/data";
 
+const PROMPT = MOCK_NEWS;
 
-const SYSTEM_PROMPT = `
-    You are a news summarizer, the user will give you several news article, and your job is to essentially summarize them into a headline + 3-5 bullet points. 
-    ## Guardrails
-    - Each bullet point should only be 1 sentence with a single focus
-    ### Outputu
-        1. <Headline></Headline>
-        - Bullet point 1
-        - Bullet ppoint 2
-`
+void (async () => {
+    const newsSummarizerAgent = new ANewsSummarizer();
+    // Text
+    // const answer = await newsSummarizerAgent.promptText(PROMPT);
+    // console.log(answer)
 
-const PROMPT = MOCK_NEWS
-
-
-void (async () =>{
-    console.log(('Sending Prompt'))
-    const result = await generateText({
-        model: VERCEL_AI_MODELS.LING_3_1,
-        prompt: PROMPT
-    })
-    console.log('Received Result')
-    console.info('STEPS: \n',{
-        finsihReason: result.steps[0].finishReason,
-        response: result.steps[0].response
-    })
-    console.info('====RESPONSE START====')
-    console.info('====RESPONSE END====')
-
-})().catch((error)=>{
-    console.log({
-        error
-    },'ERROR while running app exiting')
-    process.exit(1)
-})
+    // Conversation
+    const session = new AgentSession(newsSummarizerAgent);
+    const response1 = await session.sendMessage("End every sentence with PIKA");
+    console.log(response1);
+    console.log("Message", {
+        msg: session.messages,
+    });
+    const response2 = await session.sendMessage(PROMPT);
+    console.log(response2);
+    console.info("====COMPLETED====");
+    process.exit(0);
+})().catch((error) => {
+    console.log(
+        {
+            error,
+        },
+        "ERROR while running app exiting",
+    );
+    process.exit(1);
+});
