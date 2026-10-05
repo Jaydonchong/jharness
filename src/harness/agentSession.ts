@@ -3,6 +3,14 @@ import {
     ModelConversationMessage,
 } from "../agents/Interfaces";
 
+export type TSessionMessageContent =
+    | string
+    // This is adapter from Vercel's ContentPart Type
+    | {
+          type: "text";
+          text: string;
+      }[];
+
 export class AgentSession {
     public messages: ModelConversationMessage[] = [];
     constructor(private readonly agent: IConversationalAgent) {}

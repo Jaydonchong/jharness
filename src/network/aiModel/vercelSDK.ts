@@ -79,7 +79,7 @@ export class VercelSDK {
                 finalStepContent: result.finalStep.content,
             });
             throw new Error(
-                `${ERROR_CODE.UNEXPECTED_MISSING_RESPONSE} : Signature mismatch`,
+                `${ERROR_CODE.AI_MODEL_UNEXPECTED_MISSING_RESPONSE} : Signature mismatch`,
             );
         }
     }

@@ -1,5 +1,5 @@
 import { LanguageModel } from "ai";
-import { VercelSDK, VERCEL_AI_MODELS } from "../network/vercelSDK";
+import { VercelSDK, VERCEL_AI_MODELS } from "../network/aiModel/vercelSDK";
 import { IConversationalAgent, ModelConversationMessage } from "./Interfaces";
 
 export class ANewsSummarizer extends VercelSDK implements IConversationalAgent {
