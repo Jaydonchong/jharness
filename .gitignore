@@ -3,3 +3,7 @@
 node_modules
 docs/studuck
 dist
+
+
+## AUTH
+credentials.json
