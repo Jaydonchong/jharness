@@ -2,6 +2,10 @@
 - [x] Generate Text
 - [x] Multi step conversation
 - [] Tool Calling
+    - [] Function Tool
+    - [] Dynamic Tool
+    - [] Provider Defined Tool
 - [] State Preservationo
 - [] RAG
-- []  
+- [] Multimedia Support
+  
