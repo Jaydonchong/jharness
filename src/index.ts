@@ -14,9 +14,6 @@ void (async () => {
     const session = new AgentSession(newsSummarizerAgent);
     const response1 = await session.sendMessage("End every sentence with PIKA");
     console.log(response1);
-    console.log("Message", {
-        msg: session.messages,
-    });
     const response2 = await session.sendMessage(PROMPT);
     console.log(response2);
     console.info("====COMPLETED====");

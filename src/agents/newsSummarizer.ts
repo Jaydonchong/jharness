@@ -3,7 +3,7 @@ import { VercelSDK, VERCEL_AI_MODELS } from "../network/vercelSDK";
 import { IConversationalAgent, ModelConversationMessage } from "./Interfaces";
 
 export class ANewsSummarizer extends VercelSDK implements IConversationalAgent {
-    constructor(model: LanguageModel = VERCEL_AI_MODELS.LING_3_1) {
+    constructor(model: LanguageModel = VERCEL_AI_MODELS.DEFAULT) {
         const _SYSTEM_PROMPT = `
         You are a news summarizer, the user will give you several news article, and your job is to essentially summarize each news article into a headline + 3-5 bullet points. 
         ## Guardrails
