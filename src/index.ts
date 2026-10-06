@@ -1,4 +1,3 @@
-import { ANewsSummarizer } from "./agents/newsSummarizer";
 import { GoogleCalendarApi } from "./network/google/GoogleCalendarApi";
 import { AgentSession } from "./harness/agentSession";
 import { MOCK_NEWS } from "./utils/data";
@@ -8,7 +7,6 @@ import { AGcalSummarizer } from "./agents/gcalSummarizer";
 const PROMPT = MOCK_NEWS;
 
 void (async () => {
-    const newsSummarizerAgent = new ANewsSummarizer();
 
     //GCAL
     const googleCalApi = new GoogleCalendarApi(
