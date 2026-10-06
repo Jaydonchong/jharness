@@ -1,5 +1,5 @@
 import { LanguageModel } from "ai";
-import { VercelSDK, VERCEL_AI_MODELS } from "../network/aiModel/vercelSDK";
+import { VercelSDK, VERCEL_AI_MODELS } from "../network/aiProvider/vercelSDK";
 import { IConversationalAgent, ModelConversationMessage } from "./Interfaces";
 import { AgentTool } from "../tools/AgentTool";
 import { GcalGetCalendarEventsTool } from "../tools/GcalTools";
