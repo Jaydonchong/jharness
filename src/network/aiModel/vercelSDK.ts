@@ -2,6 +2,7 @@ import { LanguageModel, generateText, Tool, tool, ModelMessage } from "ai";
 import { AgentTool } from "../../tools/AgentTool";
 import z from "zod";
 import { ModelConversationMessage } from "../../agents/Interfaces";
+import logger from "../../utils/Logger";
 
 export enum VERCEL_AI_PROVIDERS {
     OPENAI = "openai",
@@ -33,7 +34,7 @@ export class VercelSDK {
                 instructions: this._INSTRUCTIONS,
                 prompt,
             });
-            console.info(`PromptText Succeeded with Finish Reason`, {
+            logger.info(`PromptText Succeeded with Finish Reason`, {
                 finishReason: result.steps[0].finishReason,
             });
 
@@ -41,13 +42,16 @@ export class VercelSDK {
 
             return result.text;
         } catch (error) {
-            console.error(`PromptText Error while calling AI Gateway`, {
+            logger.error(`PromptText Error while calling AI Gateway`, {
                 error,
             });
             return `ERROR: Unable to CALL`;
         }
     }
 
+    /**
+     * https://ai-sdk.dev/docs/reference/ai-sdk-core/generate-text#types
+     */
     public async promptMessage(
         messages: ModelConversationMessage[],
         availableTools: AgentTool<z.ZodType, unknown>[] = [],
@@ -56,6 +60,31 @@ export class VercelSDK {
             const result = await generateText({
                 model: this.model,
                 instructions: this._INSTRUCTIONS,
+                allowSystemInMessages: false, // Use instructions field instead
+                toolChoice: "auto", // 'auto' | 'none' | 'required'
+                maxRetries: 2,
+                timeout: 60_000,
+                include: {
+                    // Contorls inclusion of fields in step result, default false for memory
+                    requestBody: false,
+                    requestMessages: false,
+                    responseBody: false,
+                },
+                onStart: () => {
+                    logger.info("Firing request using Vercel SDK");
+                },
+                onToolExecutionStart: ({ toolCall }) => {
+                    logger.info("Tool call started", {
+                        input: toolCall.input,
+                        name: toolCall.toolName,
+                    });
+                },
+                onToolExecutionEnd: ({ toolCall }) => {
+                    logger.info("Tool call ended", {
+                        input: toolCall.input,
+                        name: toolCall.toolName,
+                    });
+                },
                 tools: Object.fromEntries(
                     availableTools.map((t) => [
                         `tool_${t.name}`,
@@ -64,11 +93,11 @@ export class VercelSDK {
                 ),
                 messages: messages as ModelMessage[],
             });
-            console.info("`promptMessage Succeeded with Finish Reason`");
+            logger.info("`promptMessage Succeeded with Finish Reason`");
             console.dir(
                 {
                     finishReason: result.steps[0].finishReason,
-                    responseMesasge: result.responseMessages,
+                    responseMessage: result.responseMessages,
                 },
                 { depth: null, colors: true },
             );
@@ -77,7 +106,7 @@ export class VercelSDK {
 
             return result.responseMessages as ModelConversationMessage[];
         } catch (error) {
-            console.error(`promptMessage Error while calling AI Gateway`, {
+            logger.error(`promptMessage Error while calling AI Gateway`, {
                 error,
             });
             return [];
@@ -98,7 +127,7 @@ export class VercelSDK {
 
     _verifyEmptyFinalStep(result: Awaited<ReturnType<typeof generateText>>) {
         if (result.text.length === 0 && result.finalStep.content.length > 0) {
-            console.warn({
+            logger.warn("Unexpected empty return", {
                 finalStepContent: result.finalStep.content,
             });
             throw new Error(
