@@ -3,15 +3,15 @@ import { AgentTool } from "../../tools/AgentTool";
 import z from "zod";
 import { ModelConversationMessage } from "../../agents/Interfaces";
 import logger from "../../utils/Logger";
-
-export enum VERCEL_AI_PROVIDERS {
-    OPENAI = "openai",
-    OPENCODE = "opencode",
-}
+import {
+    ILlmGenerateTextInput,
+    ILlmGenerateTextOutput,
+    ILlmProvider,
+} from "./interfaces";
 
 export enum VERCEL_AI_MODELS {
-    GPT_6_LUNA = "gpt-6-luna",
-    GPT_6_SOL = "gpt-6-sol",
+    GPT_6_LUNA = "openai/gpt-6-luna",
+    GPT_6_SOL = "openai/gpt-6-sol",
     DS_V4_FLASH = "deepseek/deepseek-v4-flash-0731",
     DS_V4_PRO = "deepseek-v4-pro",
 
@@ -21,45 +21,18 @@ export enum VERCEL_AI_MODELS {
     DEFAULT = "inclusionai/ling-3.0-flash",
 }
 
-export class VercelSDK {
-    public constructor(
-        private readonly _INSTRUCTIONS: string,
-        private readonly model: LanguageModel = VERCEL_AI_MODELS.DEFAULT,
-    ) {}
-
-    public async promptText(prompt: string): Promise<string> {
-        try {
-            const result = await generateText({
-                model: this.model,
-                instructions: this._INSTRUCTIONS,
-                prompt,
-            });
-            logger.info(`PromptText Succeeded with Finish Reason`, {
-                finishReason: result.steps[0].finishReason,
-            });
-
-            this._verifyEmptyFinalStep(result);
-
-            return result.text;
-        } catch (error) {
-            logger.error(`PromptText Error while calling AI Gateway`, {
-                error,
-            });
-            return `ERROR: Unable to CALL`;
-        }
-    }
-
+export class VercelSDK implements ILlmProvider {
     /**
      * https://ai-sdk.dev/docs/reference/ai-sdk-core/generate-text#types
      */
-    public async promptMessage(
-        messages: ModelConversationMessage[],
-        availableTools: AgentTool<z.ZodType, unknown>[] = [],
-    ): Promise<ModelConversationMessage[]> {
+    public async generateText({
+        config,
+        messages,
+    }: ILlmGenerateTextInput<LanguageModel>): Promise<ILlmGenerateTextOutput> {
         try {
             const result = await generateText({
-                model: this.model,
-                instructions: this._INSTRUCTIONS,
+                model: config.model,
+                instructions: config.systemPrompt,
                 allowSystemInMessages: false, // Use instructions field instead
                 toolChoice: "auto", // 'auto' | 'none' | 'required'
                 maxRetries: 2,
@@ -86,14 +59,14 @@ export class VercelSDK {
                     });
                 },
                 tools: Object.fromEntries(
-                    availableTools.map((t) => [
+                    config.availableTools.map((t) => [
                         `tool_${t.name}`,
                         this.sanitizeTool(t),
                     ]),
                 ),
                 messages: messages as ModelMessage[],
             });
-            logger.info("`promptMessage Succeeded with Finish Reason`");
+            logger.info("`generateText Succeeded with Finish Reason`");
             console.dir(
                 {
                     finishReason: result.steps[0].finishReason,
@@ -104,12 +77,14 @@ export class VercelSDK {
 
             this._verifyEmptyFinalStep(result);
 
-            return result.responseMessages as ModelConversationMessage[];
+            return {
+                messages: result.responseMessages as ModelConversationMessage[],
+            };
         } catch (error) {
-            logger.error(`promptMessage Error while calling AI Gateway`, {
+            logger.error(`generateText Error while calling AI Gateway`, {
                 error,
             });
-            return [];
+            return { messages: [] };
         }
     }
 
