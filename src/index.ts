@@ -7,7 +7,6 @@ import { AGcalSummarizer } from "./agents/gcalSummarizer";
 const PROMPT = MOCK_NEWS;
 
 void (async () => {
-
     //GCAL
     const googleCalApi = new GoogleCalendarApi(
         process.env.GOOGLE_GCAL_CREDENTIALS_PATH!,
@@ -35,11 +34,11 @@ void (async () => {
     // console.log(answer)
 
     // Conversation
-    const session = new AgentSession(gcalSummarizerAgent);
-    const response2 = await session.sendMessage(
-        "What Calendar Event did I have for the October 2026",
-    );
-    console.log(response2);
+    // // const session = new AgentSession(gcalSummarizerAgent);
+    // const response2 = await session.sendMessage(
+    //     "What Calendar Event did I have for the October 2026",
+    // );
+    // console.log(response2);
 
     console.info("====COMPLETED====");
     process.exit(0);
