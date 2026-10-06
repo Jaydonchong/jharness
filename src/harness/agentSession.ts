@@ -24,7 +24,7 @@ export class AgentSession {
         this.messages.push({ role: "user", content: message });
         const response = await this.agent.sendMessages(this.messages);
         if (response.length < 0)
-            throw ERROR_CODE.AI_MODEL_UNEXPECTED_MISSING_RESPONSE;
+            throw ErrorCode.AI_MODEL_UNEXPECTED_MISSING_RESPONSE;
 
         this.messages.push(...response);
         return response;

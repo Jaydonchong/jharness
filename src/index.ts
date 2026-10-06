@@ -1,8 +1,8 @@
 import { GoogleCalendarApi } from "./network/google/GoogleCalendarApi";
-import { AgentSession } from "./harness/agentSession";
-import { MOCK_NEWS } from "./utils/data";
+import { AgentSession } from "./harness/AgentSession";
+import { MOCK_NEWS } from "./utils/MockData";
 import { GcalGetCalendarEventsTool } from "./tools/GcalTools";
-import { AGcalSummarizer } from "./agents/gcalSummarizer";
+import { AGcalSummarizer } from "./agents/GcalSummarizer";
 
 const PROMPT = MOCK_NEWS;
 

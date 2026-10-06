@@ -7,7 +7,7 @@ import {
     ILlmGenerateTextInput,
     ILlmGenerateTextOutput,
     ILlmProvider,
-} from "./interfaces";
+} from "./Interfaces";
 
 export enum VERCEL_AI_MODELS {
     GPT_6_LUNA = "openai/gpt-6-luna",
@@ -106,7 +106,7 @@ export class VercelSDK implements ILlmProvider {
                 finalStepContent: result.finalStep.content,
             });
             throw new Error(
-                `${ERROR_CODE.AI_MODEL_UNEXPECTED_MISSING_RESPONSE} : Signature mismatch`,
+                `${ErrorCode.AI_MODEL_UNEXPECTED_MISSING_RESPONSE} : Signature mismatch`,
             );
         }
     }
