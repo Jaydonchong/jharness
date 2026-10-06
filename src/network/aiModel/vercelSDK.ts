@@ -1,4 +1,7 @@
-import { LanguageModel, generateText, ModelMessage } from "ai";
+import { LanguageModel, generateText, Tool, tool, ModelMessage } from "ai";
+import { AgentTool } from "../../tools/AgentTool";
+import z from "zod";
+import { ModelConversationMessage } from "../../agents/Interfaces";
 
 export enum VERCEL_AI_PROVIDERS {
     OPENAI = "openai",
@@ -14,7 +17,7 @@ export enum VERCEL_AI_MODELS {
     // Free model from AI Gateway
     LING_3_1 = "inclusionai/ling-3.1-flash-free",
 
-    DEFAULT='inclusionai/ling-3.0-flash'
+    DEFAULT = "inclusionai/ling-3.0-flash",
 }
 
 export class VercelSDK {
@@ -46,31 +49,51 @@ export class VercelSDK {
     }
 
     public async promptMessage(
-        messages: {
-            role: string;
-            content: string;
-        }[],
-    ): Promise<string> {
+        messages: ModelConversationMessage[],
+        availableTools: AgentTool<z.ZodType, unknown>[] = [],
+    ): Promise<ModelConversationMessage[]> {
         try {
             const result = await generateText({
                 model: this.model,
                 instructions: this._INSTRUCTIONS,
+                tools: Object.fromEntries(
+                    availableTools.map((t) => [
+                        `tool_${t.name}`,
+                        this.sanitizeTool(t),
+                    ]),
+                ),
                 messages: messages as ModelMessage[],
             });
-            console.info(`promptMessage Succeeded with Finish Reason`, {
-                finishReason: result.steps[0].finishReason,
-                responseMesasge: result.responseMessages,
-            });
+            console.info("`promptMessage Succeeded with Finish Reason`");
+            console.dir(
+                {
+                    finishReason: result.steps[0].finishReason,
+                    responseMesasge: result.responseMessages,
+                },
+                { depth: null, colors: true },
+            );
 
             this._verifyEmptyFinalStep(result);
 
-            return result.text;
+            return result.responseMessages as ModelConversationMessage[];
         } catch (error) {
             console.error(`promptMessage Error while calling AI Gateway`, {
                 error,
             });
-            return `ERROR: Unable to CALL`;
+            return [];
         }
+    }
+
+    public sanitizeTool<
+        TSchema extends z.ZodType,
+        TResult = void,
+        TContext extends Record<string, unknown> = {},
+    >(agentTool: AgentTool<TSchema, TResult>): Tool {
+        return tool<z.infer<TSchema>, unknown, TContext>({
+            description: agentTool.description,
+            inputSchema: agentTool.inputSchema,
+            execute: agentTool.useTool.bind(agentTool),
+        });
     }
 
     _verifyEmptyFinalStep(result: Awaited<ReturnType<typeof generateText>>) {

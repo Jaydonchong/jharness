@@ -11,14 +11,22 @@ export type TSessionMessageContent =
           text: string;
       }[];
 
+/**
+ * TODO: Make Harness Class + Harness should Handle Model Messagae
+ */
 export class AgentSession {
     public messages: ModelConversationMessage[] = [];
     constructor(private readonly agent: IConversationalAgent) {}
 
-    public async sendMessage(message: string): Promise<string> {
+    public async sendMessage(
+        message: string,
+    ): Promise<ModelConversationMessage[]> {
         this.messages.push({ role: "user", content: message });
         const response = await this.agent.sendMessages(this.messages);
-        this.messages.push({ role: "assistant", content: response });
+        if (response.length < 0)
+            throw ERROR_CODE.AI_MODEL_UNEXPECTED_MISSING_RESPONSE;
+
+        this.messages.push(...response);
         return response;
     }
 }

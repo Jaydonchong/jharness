@@ -15,7 +15,9 @@ export class ANewsSummarizer extends VercelSDK implements IConversationalAgent {
     `;
         super(_SYSTEM_PROMPT, model);
     }
-    async sendMessages(messages: ModelConversationMessage[]): Promise<string> {
+    async sendMessages(
+        messages: ModelConversationMessage[],
+    ): Promise<ModelConversationMessage[]> {
         return await super.promptMessage(messages);
     }
 }
