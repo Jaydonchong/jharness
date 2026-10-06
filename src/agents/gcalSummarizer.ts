@@ -1,8 +1,9 @@
-import { LanguageModel, ModelMessage } from "ai";
+import { LanguageModel } from "ai";
 import { VercelSDK, VERCEL_AI_MODELS } from "../network/aiModel/vercelSDK";
 import { IConversationalAgent, ModelConversationMessage } from "./Interfaces";
 import { AgentTool } from "../tools/AgentTool";
 import { GcalGetCalendarEventsTool } from "../tools/GcalTools";
+import logger from "../utils/Logger";
 
 export class AGcalSummarizer extends VercelSDK implements IConversationalAgent {
     constructor(
@@ -17,8 +18,9 @@ export class AGcalSummarizer extends VercelSDK implements IConversationalAgent {
     async sendMessages(
         messages: ModelConversationMessage[],
     ): Promise<ModelConversationMessage[]> {
-        return await super.promptMessage(messages, [
+        const response = await super.promptMessage(messages, [
             this.gcalGetCalendarEventsTool,
         ]);
+        return response;
     }
 }

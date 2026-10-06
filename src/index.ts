@@ -39,7 +39,7 @@ void (async () => {
     // Conversation
     const session = new AgentSession(gcalSummarizerAgent);
     const response2 = await session.sendMessage(
-        "What Calendar Event did I have for the September 2026",
+        "What Calendar Event did I have for the October 2026",
     );
     console.log(response2);
 
