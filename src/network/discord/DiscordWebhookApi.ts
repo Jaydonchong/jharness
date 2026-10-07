@@ -1,4 +1,5 @@
 import axios from "axios";
+import { asDomainError, DomainError, ErrorCode } from "../../utils/ErrorCode";
 
 const TIMEOUT = 15_000;
 
@@ -7,23 +8,34 @@ export class DiscordWebhookApi {
 
     constructor(webhookUrl = process.env.DISCORD_CHANNEL_WEBHOOK_URL) {
         if (!webhookUrl) {
-            throw new Error("DISCORD_CHANNEL_WEBHOOK_URL is required");
+            throw new DomainError(
+                ErrorCode.SERVER_ERROR,
+                "DISCORD_CHANNEL_WEBHOOK_URL is required",
+            );
         }
 
         this.webhookUrl = webhookUrl;
     }
 
     async sendMessage(content: string): Promise<void> {
-        await axios.post(
-            this.webhookUrl,
-            {
-                content,
-                allowed_mentions: { parse: [] },
-            },
-            {
-                params: { wait: true },
-                timeout: TIMEOUT,
-            },
-        );
+        try {
+            await axios.post(
+                this.webhookUrl,
+                {
+                    content,
+                    allowed_mentions: { parse: [] },
+                },
+                {
+                    params: { wait: true },
+                    timeout: TIMEOUT,
+                },
+            );
+        } catch (error) {
+            throw asDomainError(
+                error,
+                ErrorCode.NETWORK_ERROR,
+                "Discord webhook request failed",
+            );
+        }
     }
 }
