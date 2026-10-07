@@ -9,6 +9,7 @@ import {
     LlmTextStopReason,
 } from "../network/llmProviders/Interfaces";
 import logger from "../utils/Logger";
+import { DomainError, ErrorCode } from "../utils/ErrorCode";
 
 export type TSessionMessageContent =
     | string
@@ -76,13 +77,17 @@ export class AgentSession<TModelType> {
         }
         if (iteration >= MAX_ITERATION) {
             logger.error("Max iteration reached, stopping loop");
-            throw new Error(`${ErrorCode.MAX_AGENT_LOOP_ITERATION_REACHED}`);
+            throw new DomainError(
+                ErrorCode.MAX_AGENT_LOOP_ITERATION_REACHED,
+                "Agent loop reached its iteration limit",
+            );
         }
 
         if (!response) {
             logger.error("Empty response");
-            throw new Error(
-                `${ErrorCode.AI_MODEL_UNEXPECTED_MISSING_RESPONSE} Empty non tool-call response`,
+            throw new DomainError(
+                ErrorCode.MODEL_RESPONSE_VALIDATION_ERROR,
+                "Agent loop received no response",
             );
         }
         if (response.stopReason == LlmTextStopReason.STOP) {
@@ -90,11 +95,18 @@ export class AgentSession<TModelType> {
         }
         //TODO: Handle other stop reason
         logger.warn("Unhandled response", response);
-        throw new Error(`${ErrorCode.NOT_IMPLEMENTED} Unexpected stop`);
+        throw new DomainError(
+            ErrorCode.NOT_IMPLEMENTED,
+            `Unhandled agent stop reason: ${response.stopReason}`,
+        );
     }
 
     private _validateResponse(response: ILlmGenerateTextOutput) {
-        if (response.messages.length < 0 || response.reply.length < 0)
-            throw new Error(ErrorCode.AI_MODEL_UNEXPECTED_MISSING_RESPONSE);
+        if (response.messages.length === 0 && response.reply.length === 0) {
+            throw new DomainError(
+                ErrorCode.MODEL_RESPONSE_VALIDATION_ERROR,
+                "Model returned no messages or reply",
+            );
+        }
     }
 }

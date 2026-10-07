@@ -1,14 +1,90 @@
-import { LanguageModel, generateText, Tool, tool, ModelMessage } from "ai";
+import {
+    AISDKError,
+    APICallError,
+    EmptyResponseBodyError,
+    InvalidPromptError,
+    InvalidResponseDataError,
+    InvalidToolInputError,
+    JSONParseError,
+    LanguageModel,
+    LoadAPIKeyError,
+    LoadSettingError,
+    ModelMessage,
+    NoOutputGeneratedError,
+    NoSuchModelError,
+    NoSuchProviderReferenceError,
+    NoSuchToolError,
+    RetryError,
+    Tool,
+    ToolCallRepairError,
+    TypeValidationError,
+    UnsupportedFunctionalityError,
+    UnsupportedModelVersionError,
+    generateText,
+    tool,
+} from "ai";
 import { AgentTool } from "../../tools/AgentTool";
 import z from "zod";
 import { ModelConversationMessage } from "../../agents/Interfaces";
 import logger from "../../utils/Logger";
+import { DomainError, ErrorCode } from "../../utils/ErrorCode";
 import {
     ILlmGenerateTextInput,
     ILlmGenerateTextOutput,
     ILlmProvider,
     LlmTextStopReason,
 } from "./Interfaces";
+
+const mapAiSdkError = (error: unknown): DomainError => {
+    const failure = RetryError.isInstance(error) ? error.lastError ?? error : error;
+
+    if (failure instanceof DomainError) {
+        return failure;
+    }
+
+    let code = ErrorCode.SERVER_ERROR;
+
+    if (APICallError.isInstance(failure)) {
+        const status = failure.statusCode;
+        code =
+            status == null || status === 408 || status === 429 || status >= 500
+                ? ErrorCode.NETWORK_ERROR
+                : status === 401 || status === 403
+                  ? ErrorCode.AI_PROVIDER_CONFIGURATION_ERROR
+                  : ErrorCode.AI_PROVIDER_REQUEST_ERROR;
+    } else if (
+        InvalidPromptError.isInstance(failure) ||
+        LoadAPIKeyError.isInstance(failure) ||
+        LoadSettingError.isInstance(failure) ||
+        NoSuchModelError.isInstance(failure) ||
+        NoSuchProviderReferenceError.isInstance(failure) ||
+        UnsupportedFunctionalityError.isInstance(failure) ||
+        failure instanceof UnsupportedModelVersionError
+    ) {
+        code = ErrorCode.AI_PROVIDER_CONFIGURATION_ERROR;
+    } else if (
+        InvalidToolInputError.isInstance(failure) ||
+        NoSuchToolError.isInstance(failure) ||
+        ToolCallRepairError.isInstance(failure)
+    ) {
+        code = ErrorCode.AI_TOOL_CALL_ERROR;
+    } else if (
+        InvalidResponseDataError.isInstance(failure) ||
+        JSONParseError.isInstance(failure) ||
+        TypeValidationError.isInstance(failure)
+    ) {
+        code = ErrorCode.MODEL_RESPONSE_VALIDATION_ERROR;
+    } else if (
+        EmptyResponseBodyError.isInstance(failure) ||
+        NoOutputGeneratedError.isInstance(failure) ||
+        AISDKError.isInstance(failure)
+    ) {
+        code = ErrorCode.AI_PROVIDER_RESPONSE_ERROR;
+    }
+
+    const message = error instanceof Error ? error.message : "AI SDK failed";
+    return new DomainError(code, message, error);
+};
 
 export enum VERCEL_AI_MODELS {
     GPT_6_LUNA = "openai/gpt-6-luna",
@@ -89,8 +165,7 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
             logger.error(`generateText Error while calling AI Gateway`, {
                 error,
             });
-            console.dir(error);
-            throw error;
+            throw mapAiSdkError(error);
         }
     }
 
@@ -111,8 +186,9 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
             logger.warn("Unexpected empty return", {
                 finalStepContent: result.finalStep.content,
             });
-            throw new Error(
-                `${ErrorCode.AI_MODEL_UNEXPECTED_MISSING_RESPONSE} : Signature mismatch`,
+            throw new DomainError(
+                ErrorCode.MODEL_RESPONSE_VALIDATION_ERROR,
+                "AI SDK returned content without text",
             );
         }
     }

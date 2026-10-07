@@ -1,5 +1,6 @@
 import axios from "axios";
 import { GoogleAuth } from "google-auth-library";
+import { asDomainError, DomainError, ErrorCode } from "../../utils/ErrorCode";
 
 export type ICalendarListEntry = {
     id: string;
@@ -52,13 +53,32 @@ export class GoogleCalendarApi {
                 "https://www.googleapis.com/auth/calendar.events",
             ],
         });
+        this.http.interceptors.response.use(undefined, (error: unknown) => {
+            throw asDomainError(
+                error,
+                ErrorCode.NETWORK_ERROR,
+                "Google Calendar request failed",
+            );
+        });
     }
 
     private async authorizationHeaders() {
-        const token = await this.auth.getAccessToken();
+        let token: string | null | undefined;
+        try {
+            token = await this.auth.getAccessToken();
+        } catch (error) {
+            throw asDomainError(
+                error,
+                ErrorCode.NETWORK_ERROR,
+                "Unable to obtain Google access token",
+            );
+        }
 
         if (!token) {
-            throw new Error("Unable to obtain Google access token");
+            throw new DomainError(
+                ErrorCode.NETWORK_ERROR,
+                "Unable to obtain Google access token",
+            );
         }
 
         return { Authorization: `Bearer ${token}` };
