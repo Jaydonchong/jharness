@@ -24,6 +24,7 @@ export enum LlmTextStopReason {
 export type ILlmGenerateTextOutput = {
     messages: ModelConversationMessage[];
     reply: string;
+    stopReason: LlmTextStopReason;
 };
 
 export type ILlmProvider<TModelType> = {

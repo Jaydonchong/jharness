@@ -7,6 +7,7 @@ import {
     ILlmGenerateTextInput,
     ILlmGenerateTextOutput,
     ILlmProvider,
+    LlmTextStopReason,
 } from "./Interfaces";
 
 export enum VERCEL_AI_MODELS {
@@ -82,11 +83,13 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
             return {
                 messages: result.responseMessages as ModelConversationMessage[],
                 reply: result.text,
+                stopReason: result.finishReason as LlmTextStopReason, //TODO: Map API Enum to APP
             };
         } catch (error) {
             logger.error(`generateText Error while calling AI Gateway`, {
                 error,
             });
+            console.dir(error);
             throw error;
         }
     }
