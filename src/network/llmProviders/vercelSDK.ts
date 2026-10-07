@@ -12,7 +12,7 @@ import {
 export enum VERCEL_AI_MODELS {
     GPT_6_LUNA = "openai/gpt-6-luna",
     GPT_6_SOL = "openai/gpt-6-sol",
-    DS_V4_FLASH = "deepseek/deepseek-v4-flash-0731",
+    // DS_V4_FLASH = "deepseek/deepseek-v4-flash-0731",
     DS_V4_PRO = "deepseek-v4-pro",
 
     // Free model from AI Gateway
@@ -21,7 +21,7 @@ export enum VERCEL_AI_MODELS {
     DEFAULT = "inclusionai/ling-3.0-flash",
 }
 
-export class VercelSDK implements ILlmProvider {
+export class VercelSDK implements ILlmProvider<LanguageModel> {
     /**
      * https://ai-sdk.dev/docs/reference/ai-sdk-core/generate-text#types
      */
@@ -46,6 +46,9 @@ export class VercelSDK implements ILlmProvider {
                 onStart: () => {
                     logger.info("Firing request using Vercel SDK");
                 },
+                onEnd: () => {
+                    logger.info("Request Successful using Vercel SDK");
+                },
                 onToolExecutionStart: ({ toolCall }) => {
                     logger.info("Tool call started", {
                         input: toolCall.input,
@@ -66,7 +69,6 @@ export class VercelSDK implements ILlmProvider {
                 ),
                 messages: messages as ModelMessage[],
             });
-            logger.info("`generateText Succeeded with Finish Reason`");
             console.dir(
                 {
                     finishReason: result.steps[0].finishReason,
@@ -79,12 +81,13 @@ export class VercelSDK implements ILlmProvider {
 
             return {
                 messages: result.responseMessages as ModelConversationMessage[],
+                reply: result.text,
             };
         } catch (error) {
             logger.error(`generateText Error while calling AI Gateway`, {
                 error,
             });
-            return { messages: [] };
+            throw error;
         }
     }
 

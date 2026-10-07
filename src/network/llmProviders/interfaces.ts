@@ -11,12 +11,23 @@ export type ILlmGenerateTextInput<TModelType> = {
     };
     messages: ModelConversationMessage[];
 };
+
+export enum LlmTextStopReason {
+    STOP = "stop", // Finished
+    LENGTH = "length", // Exceeded token limit
+    CONTENT_FILTER = "content-filter",
+    TOOL_CALL = "tool-calls",
+    ERROR = "error",
+    OTHER = "other",
+}
+
 export type ILlmGenerateTextOutput = {
     messages: ModelConversationMessage[];
+    reply: string;
 };
 
-export type ILlmProvider = {
+export type ILlmProvider<TModelType> = {
     generateText(
-        arg: ILlmGenerateTextInput<LanguageModel>,
+        arg: ILlmGenerateTextInput<TModelType>,
     ): Promise<ILlmGenerateTextOutput>;
 };
