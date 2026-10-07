@@ -5,6 +5,7 @@ import { GcalGetCalendarEventsTool } from "./tools/GcalTools";
 import { AGcalSummarizer } from "./agents/GcalSummarizer";
 import { VERCEL_AI_MODELS, VercelSDK } from "./network/llmProviders/VercelSDK";
 import { Harness } from "./harness/Harness";
+import { DiscordWebhookApi } from "./network/discord/DiscordWebhookApi";
 
 const PROMPT = MOCK_NEWS;
 
@@ -16,6 +17,7 @@ void (async () => {
     const gcalGetCalendarEventsTool = new GcalGetCalendarEventsTool({
         googleCalApi,
     });
+    const discordApi = new DiscordWebhookApi();
     /**Provider */
     const vercelSDK = new VercelSDK();
     /**
@@ -36,6 +38,7 @@ void (async () => {
         "What are the events that I have for the first half of Oct 2026",
     );
     console.log(`Assistant: ${response}`);
+    await discordApi.sendMessage(response)
 
     console.info("====COMPLETED====");
     process.exit(0);
