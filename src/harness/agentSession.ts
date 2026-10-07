@@ -6,6 +6,7 @@ import {
 import {
     ILlmGenerateTextOutput,
     ILlmProvider,
+    ILlmStreamTextOutput,
     LlmTextStopReason,
 } from "../network/llmProviders/Interfaces";
 import logger from "../utils/Logger";
@@ -108,5 +109,50 @@ export class AgentSession<TModelType> {
                 "Model returned no messages or reply",
             );
         }
+    }
+
+    public async *streamMessage(message: string): AsyncGenerator<string> {
+        this.messages.push({ role: "user", content: message });
+
+        // Loop
+        const MAX_ITERATION = 10;
+        let iteration = 0;
+        let stopReason: LlmTextStopReason = LlmTextStopReason.TOOL_CALL;
+        while (
+            stopReason == LlmTextStopReason.TOOL_CALL &&
+            iteration < MAX_ITERATION
+        ) {
+            const response = await this.llmProvider.streamText({
+                config: {
+                    model: this.props.model,
+                    systemPrompt: this.agent.systemPrompt,
+                    availableTools: this.agent.agentTools,
+                },
+                messages: this.messages,
+            });
+
+            for await (const chunk of response.reply) {
+                yield chunk;
+            }
+
+            const { messages, stopReason } = await response.completed;
+
+            if (stopReason == LlmTextStopReason.STOP) return;
+
+            if (stopReason !== LlmTextStopReason.TOOL_CALL) {
+                throw new DomainError(
+                    ErrorCode.NOT_IMPLEMENTED,
+                    `Unhandled agent stop reason :${stopReason}`,
+                );
+            }
+
+            this.messages.push(...messages);
+            iteration++;
+        }
+        logger.error("Max iteration reached, stopping loop");
+        throw new DomainError(
+            ErrorCode.MAX_AGENT_LOOP_ITERATION_REACHED,
+            "Agent loop reached its iteration limit",
+        );
     }
 }

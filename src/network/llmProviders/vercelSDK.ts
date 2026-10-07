@@ -21,6 +21,7 @@ import {
     UnsupportedFunctionalityError,
     UnsupportedModelVersionError,
     generateText,
+    streamText,
     tool,
 } from "ai";
 import { AgentTool } from "../../tools/AgentTool";
@@ -32,11 +33,15 @@ import {
     ILlmGenerateTextInput,
     ILlmGenerateTextOutput,
     ILlmProvider,
+    ILlmStreamTextInput,
+    ILlmStreamTextOutput,
     LlmTextStopReason,
 } from "./Interfaces";
 
 const mapAiSdkError = (error: unknown): DomainError => {
-    const failure = RetryError.isInstance(error) ? error.lastError ?? error : error;
+    const failure = RetryError.isInstance(error)
+        ? (error.lastError ?? error)
+        : error;
 
     if (failure instanceof DomainError) {
         return failure;
@@ -169,6 +174,68 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
         }
     }
 
+    public async streamText({
+        config,
+        messages,
+    }: ILlmStreamTextInput<LanguageModel>): Promise<ILlmStreamTextOutput> {
+        try {
+            const result = streamText({
+                model: config.model,
+                instructions: config.systemPrompt,
+                allowSystemInMessages: false, // Use instructions field instead
+                toolChoice: "auto", // 'auto' | 'none' | 'required'
+                maxRetries: 2,
+                timeout: 60_000,
+                include: {
+                    // Contorls inclusion of fields in step result, default false for memory
+                    requestBody: false,
+                    requestMessages: false,
+                },
+                onStart: () => {
+                    logger.info("Firing stream request using Vercel SDK");
+                },
+                onEnd: () => {
+                    logger.info("stream Request Successful using Vercel SDK");
+                },
+                onToolExecutionStart: ({ toolCall }) => {
+                    logger.info("Tool call started", {
+                        input: toolCall.input,
+                        name: toolCall.toolName,
+                    });
+                },
+                onToolExecutionEnd: ({ toolCall }) => {
+                    logger.info("Tool call ended", {
+                        input: toolCall.input,
+                        name: toolCall.toolName,
+                    });
+                },
+                tools: Object.fromEntries(
+                    config.availableTools.map((t) => [
+                        `tool_${t.name}`,
+                        this.sanitizeTool(t),
+                    ]),
+                ),
+                messages: messages as ModelMessage[],
+            });
+
+            return {
+                reply: result.textStream,
+                completed: Promise.all([
+                    result.responseMessages,
+                    result.finishReason,
+                ]).then(([messages, stopReason]) => ({
+                    messages: messages as ModelConversationMessage[],
+                    stopReason: stopReason as LlmTextStopReason, //TODO: Map API Enum to APP
+                })),
+            };
+        } catch (error) {
+            logger.error(`generateText Error while calling AI Gateway`, {
+                error,
+            });
+            throw mapAiSdkError(error);
+        }
+    }
+
     public sanitizeTool<
         TSchema extends z.ZodType,
         TResult = void,
@@ -182,9 +249,15 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
     }
 
     _verifyEmptyFinalStep(result: Awaited<ReturnType<typeof generateText>>) {
-        if (result.text.length === 0 && result.finalStep.content.length > 0) {
+        if (
+            result.finishReason === LlmTextStopReason.STOP &&
+            result.text.length === 0 &&
+            result.finalStep.content.length > 0
+        ) {
             logger.warn("Unexpected empty return", {
                 finalStepContent: result.finalStep.content,
+                resultText: result.text,
+                resultContent: result.finalStep.content,
             });
             throw new DomainError(
                 ErrorCode.MODEL_RESPONSE_VALIDATION_ERROR,

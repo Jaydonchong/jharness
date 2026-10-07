@@ -38,7 +38,18 @@ void (async () => {
         "What are the events that I have for the first half of Oct 2026",
     );
     console.log(`Assistant: ${response}`);
-    await discordApi.sendMessage(response)
+    // await discordApi.sendMessage(response)
+
+
+    let streamedResponse = ''
+    process.stdout.write('Assistant: ')
+    for await (const chunk of session.streamMessage(
+        "What about the second half of Oct 2026"
+    )){
+        process.stdout.write(chunk);
+        streamedResponse +=chunk
+    }
+    process.stdout.write("\n")
 
     console.info("====COMPLETED====");
     process.exit(0);

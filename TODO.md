@@ -11,6 +11,10 @@
 - [x] Session ID tracking
 - [x] Harness class
 - [] Structured Outputs  
+- [] Error Handling : https://ai-sdk.dev/docs/reference/ai-sdk-errors
+- [] Output reasoning
+- [] Stream Text
+- [] Skill Upload
 
 
 # Optional
