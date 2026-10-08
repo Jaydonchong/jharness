@@ -1,4 +1,3 @@
-import { LanguageModel } from "ai";
 import z from "zod";
 import { ModelConversationMessage } from "../../agents/Interfaces";
 import { AgentTool } from "../../tools/AgentTool";
@@ -17,6 +16,7 @@ export type ILlmGenerateTextInput<TModelType> = {
         model: TModelType;
         systemPrompt?: string;
         availableTools: AgentTool<z.ZodType, unknown>[];
+        outputSchema?: z.ZodType;
     };
     messages: ModelConversationMessage[];
 };
@@ -25,6 +25,7 @@ export type ILlmGenerateTextOutput = {
     messages: ModelConversationMessage[];
     reply: string;
     stopReason: LlmTextStopReason;
+    output?: unknown;
 };
 
 export type ILlmProvider<TModelType> = {
@@ -41,6 +42,7 @@ export type ILlmStreamTextInput<TModelType> = {
         model: TModelType;
         systemPrompt?: string;
         availableTools: AgentTool<z.ZodType, unknown>[];
+        outputSchema?: z.ZodType;
     };
     messages: ModelConversationMessage[];
 };
@@ -50,5 +52,6 @@ export type ILlmStreamTextOutput = {
     completed: Promise<{
         messages: ModelConversationMessage[];
         stopReason: LlmTextStopReason;
+        output?: unknown;
     }>;
 };

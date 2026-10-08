@@ -23,6 +23,7 @@ import {
     generateText,
     streamText,
     tool,
+    Output,
 } from "ai";
 import { AgentTool } from "../../tools/AgentTool";
 import z from "zod";
@@ -149,6 +150,10 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
                         this.sanitizeTool(t),
                     ]),
                 ),
+                // Disabling temporarily as free models does not supporot response output
+                // output: config.outputSchema // 
+                //     ? Output.object({ schema: config.outputSchema })
+                //     : undefined,
                 messages: messages as ModelMessage[],
             });
             console.dir(
@@ -159,12 +164,21 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
                 { depth: null, colors: true },
             );
 
-            this._verifyEmptyFinalStep(result);
+            // `result.output` throws when the turn is not a final STOP with
+            // parsed output (e.g. a tool-call turn), so only read it then.
+            const output =
+                config.outputSchema &&
+                result.finishReason === LlmTextStopReason.STOP
+                    ? result.output
+                    : undefined;
+
+            this._verifyEmptyFinalStep(result, output);
 
             return {
                 messages: result.responseMessages as ModelConversationMessage[],
                 reply: result.text,
                 stopReason: result.finishReason as LlmTextStopReason, //TODO: Map API Enum to APP
+                output,
             };
         } catch (error) {
             logger.error(`generateText Error while calling AI Gateway`, {
@@ -215,6 +229,9 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
                         this.sanitizeTool(t),
                     ]),
                 ),
+                output: config.outputSchema
+                    ? Output.object({ schema: config.outputSchema })
+                    : undefined,
                 messages: messages as ModelMessage[],
             });
 
@@ -223,10 +240,20 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
                 completed: Promise.all([
                     result.responseMessages,
                     result.finishReason,
-                ]).then(([messages, stopReason]) => ({
-                    messages: messages as ModelConversationMessage[],
-                    stopReason: stopReason as LlmTextStopReason, //TODO: Map API Enum to APP
-                })),
+                ]).then(async ([messages, stopReason]) => {
+                    let output: unknown;
+                    if (
+                        config.outputSchema &&
+                        stopReason === LlmTextStopReason.STOP
+                    ) {
+                        output = await result.output;
+                    }
+                    return {
+                        messages: messages as ModelConversationMessage[],
+                        stopReason: stopReason as LlmTextStopReason, //TODO: Map API Enum to APP
+                        output,
+                    };
+                }),
             };
         } catch (error) {
             logger.error(`generateText Error while calling AI Gateway`, {
@@ -248,9 +275,13 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
         });
     }
 
-    _verifyEmptyFinalStep(result: Awaited<ReturnType<typeof generateText>>) {
+    _verifyEmptyFinalStep(
+        result: Awaited<ReturnType<typeof generateText>>,
+        output: unknown,
+    ) {
         if (
             result.finishReason === LlmTextStopReason.STOP &&
+            output == null &&
             result.text.length === 0 &&
             result.finalStep.content.length > 0
         ) {

@@ -67,7 +67,7 @@ void (async () => {
         }
         if (msg.authorId == process.env.DISCORD_ACCOUNT_ID) {
             const response = await session.sendMessage(msg.content);
-            await discordApi.sendMessage(response);
+            await discordApi.sendMessage(response.reply);
         }
     }
 

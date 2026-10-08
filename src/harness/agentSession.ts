@@ -1,12 +1,8 @@
 import { AbstractAgent } from "../agents/AbstractAgent";
-import {
-    IConversationalAgent,
-    ModelConversationMessage,
-} from "../agents/Interfaces";
+import { ModelConversationMessage } from "../agents/Interfaces";
 import {
     ILlmGenerateTextOutput,
     ILlmProvider,
-    ILlmStreamTextOutput,
     LlmTextStopReason,
 } from "../network/llmProviders/Interfaces";
 import logger from "../utils/Logger";
@@ -26,6 +22,11 @@ type AgentSessionProps<TModelType> = {
     agent: AbstractAgent; //TODO: General Purpose Agent
     model: TModelType;
 };
+
+export interface ISessionResult {
+    reply: string;
+    output?: unknown;
+}
 
 /**
  * 1. Track Message History
@@ -48,7 +49,7 @@ export class AgentSession<TModelType> {
         return this.props.agent;
     }
 
-    public async sendMessage(message: string): Promise<string> {
+    public async sendMessage(message: string): Promise<ISessionResult> {
         const sanitizedMessage = await this.agent.onMessage(message);
         this.messages.push({ role: "user", content: sanitizedMessage });
 
@@ -58,7 +59,7 @@ export class AgentSession<TModelType> {
         let response: ILlmGenerateTextOutput | null = null;
         let stopReason: LlmTextStopReason = LlmTextStopReason.TOOL_CALL;
         while (
-            stopReason == LlmTextStopReason.TOOL_CALL &&
+            stopReason === LlmTextStopReason.TOOL_CALL &&
             iteration < MAX_ITERATION
         ) {
             response = await this.llmProvider.generateText({
@@ -66,6 +67,7 @@ export class AgentSession<TModelType> {
                     model: this.props.model,
                     systemPrompt: this.agent.systemPrompt,
                     availableTools: this.agent.agentTools,
+                    outputSchema: this.agent.outputSchema,
                 },
                 messages: this.messages,
             });
@@ -92,8 +94,8 @@ export class AgentSession<TModelType> {
                 "Agent loop received no response",
             );
         }
-        if (response.stopReason == LlmTextStopReason.STOP) {
-            return response.reply;
+        if (response.stopReason === LlmTextStopReason.STOP) {
+            return { reply: response.reply, output: response.output };
         }
         //TODO: Handle other stop reason
         logger.warn("Unhandled response", response);
@@ -120,7 +122,7 @@ export class AgentSession<TModelType> {
         let iteration = 0;
         let stopReason: LlmTextStopReason = LlmTextStopReason.TOOL_CALL;
         while (
-            stopReason == LlmTextStopReason.TOOL_CALL &&
+            stopReason === LlmTextStopReason.TOOL_CALL &&
             iteration < MAX_ITERATION
         ) {
             const response = await this.llmProvider.streamText({
@@ -128,6 +130,7 @@ export class AgentSession<TModelType> {
                     model: this.props.model,
                     systemPrompt: this.agent.systemPrompt,
                     availableTools: this.agent.agentTools,
+                    outputSchema: this.agent.outputSchema,
                 },
                 messages: this.messages,
             });
@@ -136,9 +139,10 @@ export class AgentSession<TModelType> {
                 yield chunk;
             }
 
-            const { messages, stopReason } = await response.completed;
+            const completed = await response.completed;
+            stopReason = completed.stopReason;
 
-            if (stopReason == LlmTextStopReason.STOP) return;
+            if (stopReason === LlmTextStopReason.STOP) return;
 
             if (stopReason !== LlmTextStopReason.TOOL_CALL) {
                 throw new DomainError(
@@ -147,7 +151,7 @@ export class AgentSession<TModelType> {
                 );
             }
 
-            this.messages.push(...messages);
+            this.messages.push(...completed.messages);
             iteration++;
         }
         logger.error("Max iteration reached, stopping loop");
