@@ -7,6 +7,7 @@ import { VERCEL_AI_MODELS, VercelSDK } from "./network/llmProviders/VercelSDK";
 import { Harness } from "./harness/Harness";
 import { DiscordWebhookApi } from "./network/discord/DiscordWebhookApi";
 import { AGeneral } from "./agents/General";
+import { DiscordBotClient } from "./network/discord/DiscordBotClient";
 
 const PROMPT = MOCK_NEWS;
 
@@ -48,16 +49,27 @@ void (async () => {
         model: VERCEL_AI_MODELS.DEFAULT,
     });
 
-    let streamedResponse = "";
-    process.stdout.write("Assistant: ");
-    for await (const chunk of session2.streamMessage(
-        "Write me a 300 word essay about Malaysia",
-    )) {
-        process.stdout.write(chunk);
-        streamedResponse += chunk;
-        await new Promise((resolve)=>{setTimeout(resolve, 100)});
+    // let streamedResponse = "";
+    // process.stdout.write("Assistant: ");
+    // for await (const chunk of session2.streamMessage(
+    //     "Write me a 300 word essay about Malaysia",
+    // )) {
+    //     process.stdout.write(chunk);
+    //     streamedResponse += chunk;
+    //     await new Promise((resolve)=>{setTimeout(resolve, 100)});
+    // }
+    // process.stdout.write("\n");
+
+    const bot = new DiscordBotClient();
+    for await (const msg of bot.listen(process.env.DISCORD_SERVER_ID)) {
+        if (msg.content == "stop") {
+            break;
+        }
+        if (msg.authorId == process.env.DISCORD_ACCOUNT_ID) {
+            const response = await session.sendMessage(msg.content);
+            await discordApi.sendMessage(response);
+        }
     }
-    process.stdout.write("\n");
 
     console.info("====COMPLETED====");
     process.exit(0);

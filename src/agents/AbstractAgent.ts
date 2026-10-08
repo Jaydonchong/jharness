@@ -4,6 +4,7 @@ import { AgentTool } from "../tools/AgentTool";
 type IAbstractAgentProps = {
     systemPrompt: string;
     agentTools: AgentTool<z.ZodType, unknown>[];
+
 };
 
 export abstract class AbstractAgent {
