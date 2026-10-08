@@ -8,6 +8,7 @@ import { Harness } from "./harness/Harness";
 import { DiscordWebhookApi } from "./network/discord/DiscordWebhookApi";
 import { AGeneral } from "./agents/General";
 import { DiscordBotClient } from "./network/discord/DiscordBotClient";
+import { DiscordProductivityAssistantService } from "./service/DiscordProductivityAssistantService";
 
 const PROMPT = MOCK_NEWS;
 
@@ -19,7 +20,8 @@ void (async () => {
     const gcalGetCalendarEventsTool = new GcalGetCalendarEventsTool({
         googleCalApi,
     });
-    const discordApi = new DiscordWebhookApi();
+    const discordWebhookApi = new DiscordWebhookApi();
+    const discordBotClient = new DiscordBotClient();
     /**Provider */
     const vercelSDK = new VercelSDK();
     /**
@@ -43,11 +45,15 @@ void (async () => {
     // console.log(`Assistant: ${response}`);
     // await discordApi.sendMessage(response)
 
-    const session2 = harness.newSession({
-        llmProvider: vercelSDK,
-        agent: generalPurposeAgent,
-        model: VERCEL_AI_MODELS.DEFAULT,
-    });
+    const discordProductivityAssistantService =
+        new DiscordProductivityAssistantService({
+            gcalSummarizerAgent,
+            harness,
+            llmProvider: vercelSDK,
+            model: VERCEL_AI_MODELS.DEFAULT,
+            discordBotClient,
+            discordWebhookApi,
+        });
 
     // let streamedResponse = "";
     // process.stdout.write("Assistant: ");
@@ -60,16 +66,9 @@ void (async () => {
     // }
     // process.stdout.write("\n");
 
-    const bot = new DiscordBotClient();
-    for await (const msg of bot.listen(process.env.DISCORD_SERVER_ID)) {
-        if (msg.content == "stop") {
-            break;
-        }
-        if (msg.authorId == process.env.DISCORD_ACCOUNT_ID) {
-            const response = await session.sendMessage(msg.content);
-            await discordApi.sendMessage(response.reply);
-        }
-    }
+    await Promise.all([
+        discordProductivityAssistantService.run()
+    ])
 
     console.info("====COMPLETED====");
     process.exit(0);
