@@ -49,7 +49,8 @@ export class AgentSession<TModelType> {
     }
 
     public async sendMessage(message: string): Promise<string> {
-        this.messages.push({ role: "user", content: message });
+        const sanitizedMessage = await this.agent.onMessage(message);
+        this.messages.push({ role: "user", content: sanitizedMessage });
 
         // Loop
         const MAX_ITERATION = 10;

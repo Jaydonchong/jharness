@@ -16,7 +16,7 @@
 - [] Stream Text
 - [] Skill Upload
 
-- [] Runtime Context - Solves the problem of models assuming current date as 2025 based on the data it is trained on
+- [] Runtime  - Solves the problem of models assuming current date as 2025 based on the data it is trained on
 
 
 # Optional
