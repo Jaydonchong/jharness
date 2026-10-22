@@ -5,6 +5,7 @@ import {
     type TextBasedChannel,
 } from "discord.js";
 import { asDomainError, DomainError, ErrorCode } from "../../utils/ErrorCode";
+import logger from "../../utils/Logger";
 
 export interface DiscordInboundMessage {
     id: string;
@@ -43,6 +44,12 @@ export class DiscordBotClient {
                 GatewayIntentBits.MessageContent,
             ],
         });
+
+        this.client.on('error',(error)=>{
+            logger.error('Discord client error',{
+                error: error as Error
+            })
+        })
     }
 
     /**
@@ -90,7 +97,7 @@ export class DiscordBotClient {
         try {
             if (this.stopped) return;
             await this.client.login(this.token);
-            while (true) {
+            while (!this.stopped) {
                 if (this.stopped) return;
                 const queued = pending.shift();
                 const next =
