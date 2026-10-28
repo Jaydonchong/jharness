@@ -1,12 +1,13 @@
 import { GoogleCalendarApi } from "./network/google/GoogleCalendarApi";
 import { MOCK_NEWS } from "./utils/MockData";
 import { GcalGetCalendarEventsTool } from "./tools/GcalTools";
-import { VERCEL_AI_MODELS, VercelSDK } from "./network/llmProviders/vercelSDK";
+import { VERCEL_AI_MODELS, VercelSDK } from "./network/llmProviders/VercelSDK";
 import { Harness } from "./harness/Harness";
 import { DiscordWebhookApi } from "./network/discord/DiscordWebhookApi";
 import { AGeneral } from "./agents/General";
 import { DiscordBotClient } from "./network/discord/DiscordBotClient";
 import { DiscordProductivityAssistantService } from "./service/DiscordProductivityAssistantService";
+import { AGcalSummarizer } from "./agents/GcalSummarizer";
 
 const PROMPT = MOCK_NEWS;
 
