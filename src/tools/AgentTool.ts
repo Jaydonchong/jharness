@@ -1,4 +1,5 @@
 import z from "zod";
+import { asDomainError, ErrorCode } from "../utils/ErrorCode";
 
 export type IAgentTool<TSchema extends z.ZodType> = {
     name: string;
@@ -22,13 +23,21 @@ export abstract class AgentTool<TSchema extends z.ZodType, TResult = void> {
     }
 
     private async _validate(input: z.infer<TSchema>): Promise<void> {
-        await this.config.inputSchema.parseAsync(input);
+        try {
+            await this.config.inputSchema.parseAsync(input);
+        } catch (error) {
+            throw asDomainError(error, ErrorCode.VALIDATION_ERROR, "Invalid tool input");
+        }
     }
 
     protected abstract execute(input: z.infer<TSchema>): Promise<TResult>;
 
     public async useTool(input: z.infer<TSchema>, {}): Promise<TResult> {
         await this._validate(input);
-        return await this.execute(input);
+        try {
+            return await this.execute(input);
+        } catch (error) {
+            throw asDomainError(error, ErrorCode.AI_TOOL_CALL_ERROR, "Tool execution failed");
+        }
     }
 }

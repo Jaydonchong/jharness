@@ -1,3 +1,5 @@
+import { asDomainError, DomainError, ErrorCode } from "./ErrorCode";
+
 type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonValue[] | JsonObject;
 type JsonObject = { [key: string]: JsonValue };
@@ -5,7 +7,11 @@ type TableField = { key: string; children: TableField[] | null };
 
 /** Converts JSON text to TOON using commas and two-space indentation. */
 export function jsonToToon(json: string): string {
-    return render(JSON.parse(json) as JsonValue, 0).join("\n");
+    try {
+        return render(JSON.parse(json) as JsonValue, 0).join("\n");
+    } catch (error) {
+        throw asDomainError(error, ErrorCode.VALIDATION_ERROR, "Invalid JSON for TOON conversion");
+    }
 }
 
 function isObject(value: JsonValue): value is JsonObject {
@@ -17,7 +23,10 @@ function quote(value: string): string {
     for (const character of value) {
         const code = character.codePointAt(0)!;
         if (code >= 0xd800 && code <= 0xdfff) {
-            throw new TypeError("TOON cannot represent unpaired Unicode surrogates");
+            throw new DomainError(
+                ErrorCode.VALIDATION_ERROR,
+                "TOON cannot represent unpaired Unicode surrogates",
+            );
         }
         switch (character) {
             case "\\": escaped += "\\\\"; break;
@@ -40,7 +49,10 @@ function encodeKey(key: string): string {
 
 function encodePrimitive(value: JsonPrimitive): string {
     if (typeof value === "number" && !Number.isFinite(value)) {
-        throw new RangeError("JSON number exceeds the finite JavaScript number range");
+        throw new DomainError(
+            ErrorCode.VALIDATION_ERROR,
+            "JSON number exceeds the finite JavaScript number range",
+        );
     }
     if (typeof value !== "string") return String(value);
 

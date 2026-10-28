@@ -10,10 +10,16 @@ export class Logger {
     private readonly pino: pino.Logger;
 
     constructor(private readonly options?: ILoggerOptions) {
-        this.pino = pino({
-            name: this.options?.name ?? "default",
-            level: this.options?.level ?? "info",
-        });
+        this.pino = pino(
+            {
+                name: this.options?.name ?? "default",
+                level: this.options?.level ?? "info",
+            },
+            pino.destination({
+                dest: 1,
+                sync: true,
+            }),
+        );
     }
 
     public fatal(message: string = "", object: Record<string, any> = {}) {
