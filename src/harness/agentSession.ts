@@ -32,6 +32,10 @@ export interface ISessionResult {
  * 1. Track Message History
  *
  */
+
+const MAX_AGENT_LOOP_STEP = 10;
+const MAX_RETRY_PER_STEP = 3; // Note: retries do not count into agent loop step.
+
 export class AgentSession<TModelType> {
     public messages: ModelConversationMessage[] = [];
 
@@ -54,32 +58,47 @@ export class AgentSession<TModelType> {
         this.messages.push({ role: "user", content: sanitizedMessage });
 
         // Loop
-        const MAX_ITERATION = 10;
-        let iteration = 0;
+        let step = 0;
         let response: ILlmGenerateTextOutput | null = null;
         let stopReason: LlmTextStopReason = LlmTextStopReason.TOOL_CALL;
         while (
             stopReason === LlmTextStopReason.TOOL_CALL &&
-            iteration < MAX_ITERATION
+            step < MAX_AGENT_LOOP_STEP
         ) {
-            response = await this.llmProvider.generateText({
-                config: {
-                    model: this.props.model,
-                    systemPrompt: this.agent.systemPrompt,
-                    availableTools: this.agent.agentTools,
-                    outputSchema: this.agent.outputSchema,
-                },
-                messages: this.messages,
-            });
+            let retries = 0;
 
-            this._validateResponse(response);
+            while (retries < MAX_RETRY_PER_STEP) {
+                try {
+                    response = await this.llmProvider.generateText({
+                        config: {
+                            model: this.props.model,
+                            systemPrompt: this.agent.systemPrompt,
+                            availableTools: this.agent.agentTools,
+                            outputSchema: this.agent.outputSchema,
+                        },
+                        messages: this.messages,
+                    });
+                    this._validateResponse(response);
+                } catch (error) {
+                    retries++;
+                }
+                break;
+            }
+
+            if (retries >= MAX_RETRY_PER_STEP || response == null) {
+                throw new DomainError(
+                    ErrorCode.AI_PROVIDER_RESPONSE_ERROR,
+                    "Unable to send request to provider",
+                );
+            }
 
             stopReason = response.stopReason;
 
             this.messages.push(...response.messages);
-            iteration++;
+            step++;
         }
-        if (iteration >= MAX_ITERATION) {
+
+        if (step >= MAX_AGENT_LOOP_STEP) {
             logger.error("Max iteration reached, stopping loop");
             throw new DomainError(
                 ErrorCode.MAX_AGENT_LOOP_ITERATION_REACHED,
@@ -87,13 +106,14 @@ export class AgentSession<TModelType> {
             );
         }
 
-        if (!response) {
+        if (response == null) {
             logger.error("Empty response");
             throw new DomainError(
                 ErrorCode.MODEL_RESPONSE_VALIDATION_ERROR,
                 "Agent loop received no response",
             );
         }
+
         if (response.stopReason === LlmTextStopReason.STOP) {
             return { reply: response.reply, output: response.output };
         }
