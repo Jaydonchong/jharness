@@ -39,6 +39,7 @@ export class DiscordProductivityAssistantService<
                 break;
             }
             if (msg.authorId == process.env.DISCORD_ACCOUNT_ID) {
+                await this.deps.discordWebhookApi.sendMessage('**Bot**: Message received, processing...')
                 const response = await this.session.sendMessage(msg.content);
                 await this.deps.discordWebhookApi.sendMessage(response.reply);
             }
