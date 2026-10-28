@@ -15,16 +15,23 @@ export type ILlmGenerateTextInput<TModelType> = {
     config: {
         model: TModelType;
         systemPrompt?: string;
-        availableTools: AgentTool<z.ZodType, unknown>[];
+        availableTools: AgentTool<z.ZodType, z.ZodType>[];
         outputSchema?: z.ZodType;
     };
     messages: ModelConversationMessage[];
+};
+
+export type ILlmToolCall = {
+    id: string;
+    name: string;
+    input: unknown;
 };
 
 export type ILlmGenerateTextOutput = {
     messages: ModelConversationMessage[];
     reply: string;
     stopReason: LlmTextStopReason;
+    toolCalls?: ILlmToolCall[];
     output?: unknown;
 };
 
@@ -41,7 +48,7 @@ export type ILlmStreamTextInput<TModelType> = {
     config: {
         model: TModelType;
         systemPrompt?: string;
-        availableTools: AgentTool<z.ZodType, unknown>[];
+        availableTools: AgentTool<z.ZodType, z.ZodType>[];
         outputSchema?: z.ZodType;
     };
     messages: ModelConversationMessage[];

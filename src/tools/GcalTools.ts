@@ -12,15 +12,37 @@ export const GcalGetCalendarEventInputSchema = z.object({
     end: z.string().describe("search end date range for events in ISO Format"),
 });
 
+export const GcalGetCalendarEventOutputSchema = z.array(
+    z.object({
+        id: z.string(),
+        summary: z.string().optional(),
+        start: z
+            .object({
+                date: z.string().optional(),
+                dateTime: z.string().optional(),
+                timeZone: z.string().optional(),
+            })
+            .optional(),
+        end: z
+            .object({
+                date: z.string().optional(),
+                dateTime: z.string().optional(),
+                timeZone: z.string().optional(),
+            })
+            .optional(),
+    }),
+);
+
 export class GcalGetCalendarEventsTool extends AgentTool<
     typeof GcalGetCalendarEventInputSchema,
-    ICalendarEvent[]
+    typeof GcalGetCalendarEventOutputSchema
 > {
     constructor(private readonly deps: { googleCalApi: GoogleCalendarApi }) {
         super({
             name: "gcal_list_events",
             description: `Get events within a time range, use this when user asks for events or contents of their calendar`,
             inputSchema: GcalGetCalendarEventInputSchema,
+            outputSchema: GcalGetCalendarEventOutputSchema,
         });
     }
 

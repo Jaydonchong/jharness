@@ -1,14 +1,24 @@
 import z from "zod";
 import { asDomainError, ErrorCode } from "../utils/ErrorCode";
+import logger from "../utils/Logger";
 
-export type IAgentTool<TSchema extends z.ZodType> = {
+export type IAgentTool<
+    TInputSchema extends z.ZodType,
+    TOutputSchema extends z.ZodType,
+> = {
     name: string;
     description?: string;
-    inputSchema: TSchema;
+    inputSchema: TInputSchema;
+    outputSchema: TOutputSchema;
 };
 
-export abstract class AgentTool<TSchema extends z.ZodType, TResult = void> {
-    constructor(public readonly config: IAgentTool<TSchema>) {}
+export abstract class AgentTool<
+    TInputSchema extends z.ZodType,
+    TOutputSchema extends z.ZodType,
+> {
+    constructor(
+        public readonly config: IAgentTool<TInputSchema, TOutputSchema>,
+    ) {}
 
     public get name(): string {
         return this.config.name;
@@ -18,11 +28,15 @@ export abstract class AgentTool<TSchema extends z.ZodType, TResult = void> {
         return this.config.description ?? "";
     }
 
-    public get inputSchema(): TSchema {
+    public get inputSchema(): TInputSchema {
         return this.config.inputSchema;
     }
 
-    private async _validate(input: z.infer<TSchema>): Promise<void> {
+    public get outputSchema(): TOutputSchema {
+        return this.config.outputSchema;
+    }
+
+    private async _validateInput(input: z.infer<TInputSchema>): Promise<void> {
         try {
             await this.config.inputSchema.parseAsync(input);
         } catch (error) {
@@ -34,11 +48,29 @@ export abstract class AgentTool<TSchema extends z.ZodType, TResult = void> {
         }
     }
 
+    private async _validateOutput(
+        output: unknown,
+    ): Promise<z.infer<TOutputSchema>> {
+        try {
+            return await this.config.outputSchema.parseAsync(output);
+        } catch (error) {
+            throw asDomainError(
+                error,
+                ErrorCode.VALIDATION_ERROR,
+                "Invalid tool output",
+            );
+        }
+    }
+
     private async _preToolCheck(
-        input: z.infer<TSchema>,
-    ): Promise<z.infer<TSchema>> {
+        input: z.infer<TInputSchema>,
+    ): Promise<z.infer<TInputSchema>> {
         // Default checks for all tool
-        await this._validate(input);
+        await this._validateInput(input);
+        logger.info("tool:call:start", {
+            input,
+            name: this.name,
+        });
 
         /**
          * TODO:
@@ -49,15 +81,25 @@ export abstract class AgentTool<TSchema extends z.ZodType, TResult = void> {
     }
 
     private async _postToolCheck(
-        input: z.infer<TSchema>,
-        output: TResult,
-    ): Promise<TResult> {
-        return output;
+        input: z.infer<TInputSchema>,
+        output: unknown,
+    ): Promise<z.infer<TOutputSchema>> {
+        const validatedOutput = await this._validateOutput(output);
+        logger.info("tool:call:success", {
+            input,
+            output: validatedOutput,
+            name: this.name,
+        });
+        return validatedOutput;
     }
 
-    protected abstract execute(input: z.infer<TSchema>): Promise<TResult>;
+    protected abstract execute(
+        input: z.infer<TInputSchema>,
+    ): Promise<z.infer<TOutputSchema>>;
 
-    public async useTool(input: z.infer<TSchema>, {}): Promise<TResult> {
+    public async useTool(
+        input: z.infer<TInputSchema>,
+    ): Promise<z.infer<TOutputSchema>> {
         try {
             const processedInput = await this._preToolCheck(input);
             const result = await this.execute(processedInput);

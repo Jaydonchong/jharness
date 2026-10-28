@@ -61,10 +61,7 @@ export class AgentSession<TModelType> {
         let step = 0;
         let response: ILlmGenerateTextOutput | null = null;
         let stopReason: LlmTextStopReason = LlmTextStopReason.TOOL_CALL;
-        while (
-            stopReason === LlmTextStopReason.TOOL_CALL &&
-            step < MAX_AGENT_LOOP_STEP
-        ) {
+        while (step < MAX_AGENT_LOOP_STEP) {
             let retries = 0;
 
             while (retries < MAX_RETRY_PER_STEP) {
@@ -93,9 +90,42 @@ export class AgentSession<TModelType> {
             }
 
             stopReason = response.stopReason;
+            step++;
 
             this.messages.push(...response.messages);
-            step++;
+
+            if (stopReason !== LlmTextStopReason.TOOL_CALL) break;
+
+            // Tool invocation steps, hand rolled
+            // Enhancement:
+            // can be offloaded into a queue/runner pattern in the future
+            // Optional (Tool call preservation)
+            if (!response.toolCalls?.length) {
+                throw new DomainError(
+                    ErrorCode.AI_PROVIDER_RESPONSE_ERROR,
+                    "Tool call stop reason without any tool call",
+                );
+            }
+            let toolCallResults = [];
+            // Sequential for now, can be concurrent later
+            for (let i = 0; i < response.toolCalls.length; i++) {
+                let call = response.toolCalls[i];
+                let tool = this.agent.getTool(call.name);
+                let result = await tool.useTool(call.input);
+                toolCallResults.push({
+                    type: "tool-result",
+                    toolCallId: call.id,
+                    toolName: call.name,
+                    output: {
+                        type: "json",
+                        value: result,
+                    },
+                });
+            }
+            this.messages.push({
+                role: "tool",
+                content: toolCallResults,
+            });
         }
 
         if (step >= MAX_AGENT_LOOP_STEP) {
@@ -117,6 +147,7 @@ export class AgentSession<TModelType> {
         if (response.stopReason === LlmTextStopReason.STOP) {
             return { reply: response.reply, output: response.output };
         }
+
         //TODO: Handle other stop reason
         logger.warn("Unhandled response", response);
         throw new DomainError(

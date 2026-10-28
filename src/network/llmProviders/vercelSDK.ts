@@ -144,14 +144,15 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
                         name: toolCall.toolName,
                     });
                 },
+                // Tool Registry
                 tools: Object.fromEntries(
                     config.availableTools.map((t) => [
-                        `tool_${t.name}`,
+                        `${t.name}`,
                         this.sanitizeTool(t),
                     ]),
                 ),
                 // Disabling temporarily as free models does not supporot response output
-                // output: config.outputSchema // 
+                // output: config.outputSchema //
                 //     ? Output.object({ schema: config.outputSchema })
                 //     : undefined,
                 messages: messages as ModelMessage[],
@@ -178,6 +179,13 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
                 messages: result.responseMessages as ModelConversationMessage[],
                 reply: result.text,
                 stopReason: result.finishReason as LlmTextStopReason, //TODO: Map API Enum to APP
+                toolCalls: result.toolCalls.map((tool) => {
+                    return {
+                        id: tool.toolCallId,
+                        name: tool.toolName,
+                        input: tool.input,
+                    };
+                }),
                 output,
             };
         } catch (error) {
@@ -211,21 +219,21 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
                 onEnd: () => {
                     logger.info("stream Request Successful using Vercel SDK");
                 },
-                onToolExecutionStart: ({ toolCall }) => {
-                    logger.info("Tool call started", {
-                        input: toolCall.input,
-                        name: toolCall.toolName,
-                    });
-                },
-                onToolExecutionEnd: ({ toolCall }) => {
-                    logger.info("Tool call ended", {
-                        input: toolCall.input,
-                        name: toolCall.toolName,
-                    });
-                },
+                // onToolExecutionStart: ({ toolCall }) => {
+                //     logger.info("Tool call started", {
+                //         input: toolCall.input,
+                //         name: toolCall.toolName,
+                //     });
+                // },
+                // onToolExecutionEnd: ({ toolCall }) => {
+                //     logger.info("Tool call ended", {
+                //         input: toolCall.input,
+                //         name: toolCall.toolName,
+                //     });
+                // },
                 tools: Object.fromEntries(
                     config.availableTools.map((t) => [
-                        `tool_${t.name}`,
+                        `${t.name}`,
                         this.sanitizeTool(t),
                     ]),
                 ),
@@ -264,14 +272,15 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
     }
 
     public sanitizeTool<
-        TSchema extends z.ZodType,
-        TResult = void,
+        TInputSchema extends z.ZodType,
+        TOutputSchema extends z.ZodType,
         TContext extends Record<string, unknown> = {},
-    >(agentTool: AgentTool<TSchema, TResult>): Tool {
-        return tool<z.infer<TSchema>, unknown, TContext>({
+    >(agentTool: AgentTool<TInputSchema, TOutputSchema>): Tool {
+        return tool({
             description: agentTool.description,
             inputSchema: agentTool.inputSchema,
-            execute: agentTool.useTool.bind(agentTool),
+            outputSchema: agentTool.outputSchema,
+            // execute: agentTool.useTool.bind(agentTool),
         });
     }
 
