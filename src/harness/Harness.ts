@@ -4,8 +4,13 @@ import Uuidv4Generator from "../utils/Uuidv4Generator";
 import { AgentSession } from "./AgentSession";
 
 /**
- * 1. Compaction
- * 2. Memory
+ * TODO
+ * 1. Tool Loop
+ * 2. Compaction
+ * 3. Memory
+ * 4. RAG
+ * 5. Evals
+ * 6. Hooks + Permissions
  */
 
 export class Harness {
