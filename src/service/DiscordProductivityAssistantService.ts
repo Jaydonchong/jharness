@@ -1,10 +1,8 @@
-import { LanguageModel } from "ai";
 import { AGcalSummarizer } from "../agents/GcalSummarizer";
 import { AgentSession } from "../harness/AgentSession";
 import { Harness } from "../harness/Harness";
 import { DiscordBotClient } from "../network/discord/DiscordBotClient";
 import { DiscordWebhookApi } from "../network/discord/DiscordWebhookApi";
-import { VERCEL_AI_MODELS, VercelSDK } from "../network/llmProviders/VercelSDK";
 import { AbstractService } from "./AbstractService";
 import { ILlmProvider } from "../network/llmProviders/Interfaces";
 
