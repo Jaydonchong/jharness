@@ -26,18 +26,48 @@ export abstract class AgentTool<TSchema extends z.ZodType, TResult = void> {
         try {
             await this.config.inputSchema.parseAsync(input);
         } catch (error) {
-            throw asDomainError(error, ErrorCode.VALIDATION_ERROR, "Invalid tool input");
+            throw asDomainError(
+                error,
+                ErrorCode.VALIDATION_ERROR,
+                "Invalid tool input",
+            );
         }
+    }
+
+    private async _preToolCheck(
+        input: z.infer<TSchema>,
+    ): Promise<z.infer<TSchema>> {
+        // Default checks for all tool
+        await this._validate(input);
+
+        /**
+         * TODO:
+         * Decide if permission checking should be handled here or the harness
+         * Decide if formatting is needed
+         */
+        return input;
+    }
+
+    private async _postToolCheck(
+        input: z.infer<TSchema>,
+        output: TResult,
+    ): Promise<TResult> {
+        return output;
     }
 
     protected abstract execute(input: z.infer<TSchema>): Promise<TResult>;
 
     public async useTool(input: z.infer<TSchema>, {}): Promise<TResult> {
-        await this._validate(input);
         try {
-            return await this.execute(input);
+            const processedInput = await this._preToolCheck(input);
+            const result = await this.execute(processedInput);
+            return await this._postToolCheck(processedInput, result);
         } catch (error) {
-            throw asDomainError(error, ErrorCode.AI_TOOL_CALL_ERROR, "Tool execution failed");
+            throw asDomainError(
+                error,
+                ErrorCode.AI_TOOL_CALL_ERROR,
+                "Tool execution failed",
+            );
         }
     }
 }
