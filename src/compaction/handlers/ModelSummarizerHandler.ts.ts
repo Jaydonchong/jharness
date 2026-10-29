@@ -1,4 +1,4 @@
-import { ILlmProvider } from "../../network/llmProviders/Interfaces";
+import { ILlmProvider } from "../../providers/Interfaces";
 import { AbstractCompactionPipelineNode } from "../core/AbstractCompactionPipelineNode";
 import { buildPrompt } from "../core/Compaction.prompt";
 import { CompactionOutput } from "../core/Interfaces";

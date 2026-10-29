@@ -3,8 +3,8 @@ import { AgentSession } from "../harness/AgentSession";
 import { Harness } from "../harness/Harness";
 import { DiscordBotClient } from "../network/discord/DiscordBotClient";
 import { DiscordWebhookApi } from "../network/discord/DiscordWebhookApi";
+import { ILlmProvider } from "../providers/Interfaces";
 import { AbstractService } from "./AbstractService";
-import { ILlmProvider } from "../network/llmProviders/Interfaces";
 
 type IDiscordProductivityAssistantServiceDeps<TModelType> = {
     gcalSummarizerAgent: AGcalSummarizer;

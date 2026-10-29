@@ -1,7 +1,6 @@
 import { GoogleCalendarApi } from "./network/google/GoogleCalendarApi";
 import { MOCK_NEWS } from "./utils/MockData";
 import { GcalGetCalendarEventsTool } from "./tools/GcalTools";
-import { VERCEL_AI_MODELS, VercelSDK } from "./network/llmProviders/VercelSDK";
 import { Harness } from "./harness/Harness";
 import { DiscordWebhookApi } from "./network/discord/DiscordWebhookApi";
 import { AGeneral } from "./agents/General";
@@ -13,6 +12,7 @@ import { ModelSummarizer } from "./compaction/handlers/ModelSummarizerHandler.ts
 import { RecentMessageRetainHandler } from "./compaction/handlers/RecentMessageRetainHandler";
 import { DedupeRepeatedContent } from "./compaction/handlers/DedupeRepeatedContentHandler";
 import { CompactionEngine } from "./compaction/core/CompactionEngine";
+import { VERCEL_AI_MODELS, VercelSDK } from "./providers/VercelSDK";
 
 const PROMPT = MOCK_NEWS;
 

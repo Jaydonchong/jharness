@@ -1,7 +1,7 @@
 import { AbstractAgent } from "../agents/AbstractAgent";
 import { ModelConversationMessage } from "../agents/Interfaces";
 import { CompactionEngine } from "../compaction/core/CompactionEngine";
-import { ILlmProvider } from "../network/llmProviders/Interfaces";
+import { ILlmProvider } from "../providers/Interfaces";
 import logger from "../utils/Logger";
 import Uuidv4Generator from "../utils/Uuidv4Generator";
 import { AgentSession } from "./AgentSession";

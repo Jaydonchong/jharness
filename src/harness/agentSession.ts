@@ -1,13 +1,12 @@
 import { AbstractAgent } from "../agents/AbstractAgent";
 import { ModelConversationMessage } from "../agents/Interfaces";
+import logger from "../utils/Logger";
+import { DomainError, ErrorCode } from "../utils/ErrorCode";
 import {
     ILlmGenerateTextOutput,
     ILlmProvider,
     LlmTextStopReason,
-} from "../network/llmProviders/Interfaces";
-import logger from "../utils/Logger";
-import { DomainError, ErrorCode } from "../utils/ErrorCode";
-import { CompactionEngine } from "../compaction/core/CompactionEngine";
+} from "../providers/Interfaces";
 
 export type TSessionMessageContent =
     | string
