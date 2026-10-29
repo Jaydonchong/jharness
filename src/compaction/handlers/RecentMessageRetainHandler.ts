@@ -24,9 +24,13 @@ export class RecentMessageRetainHandler extends AbstractCompactionPipelineNode {
             if (messages[i].role == "user") {
                 counter--;
             }
-            i--;
+            if (counter > 0) {
+                i--;
+            }
         }
         const recentMessages = input.compactedResult.slice(i);
+        // Return no compaction if all messages are retained
+        input.compactedResult = i > 0 ? input.compactedResult.slice(0, i) : [];
         // Edit in place for memory preservation
         input.recentMessages = recentMessages;
         return Promise.resolve(input);

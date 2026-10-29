@@ -8,6 +8,11 @@ import { AGeneral } from "./agents/General";
 import { DiscordBotClient } from "./network/discord/DiscordBotClient";
 import { DiscordProductivityAssistantService } from "./service/DiscordProductivityAssistantService";
 import { AGcalSummarizer } from "./agents/GcalSummarizer";
+import { CompactionPipeline } from "./compaction/core/CompactionPipeline";
+import { ModelSummarizer } from "./compaction/handlers/ModelSummarizerHandler.ts";
+import { RecentMessageRetainHandler } from "./compaction/handlers/RecentMessageRetainHandler";
+import { DedupeRepeatedContent } from "./compaction/handlers/DedupeRepeatedContentHandler";
+import { CompactionEngine } from "./compaction/core/CompactionEngine";
 
 const PROMPT = MOCK_NEWS;
 
@@ -28,10 +33,28 @@ void (async () => {
      */
     const gcalSummarizerAgent = new AGcalSummarizer(gcalGetCalendarEventsTool);
     const generalPurposeAgent = new AGeneral();
+
+    /**
+     * Compaction Engine
+     *
+     */
+    const summaryCompactionNode = new ModelSummarizer({
+        llmProvider: vercelSDK,
+        model: VERCEL_AI_MODELS.DEFAULT,
+    });
+    // Refactor later when there are more pipelines using builder pattern
+    const baseCompactionPipeline = new CompactionPipeline()
+        .addNode(new RecentMessageRetainHandler({ threshold: 2 }))
+        .addNode(new DedupeRepeatedContent())
+        .addNode(summaryCompactionNode);
+    const compactionEngine = new CompactionEngine(baseCompactionPipeline);
+
     /**
      * Harness
      */
-    const harness = new Harness();
+    const harness = new Harness({
+        compactionEngine,
+    });
     const session = harness.newSession({
         llmProvider: vercelSDK,
         agent: gcalSummarizerAgent,
@@ -65,9 +88,7 @@ void (async () => {
     // }
     // process.stdout.write("\n");
 
-    await Promise.all([
-        discordProductivityAssistantService.run()
-    ])
+    await Promise.all([discordProductivityAssistantService.run()]);
 
     console.info("====COMPLETED====");
     process.exit(0);

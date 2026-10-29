@@ -38,8 +38,16 @@ export class DiscordProductivityAssistantService<
             if (msg.content == "stop") {
                 break;
             }
+
+            if (msg.content == "/compact") {
+                await this.session.compactConversation();
+                continue;
+            }
+
             if (msg.authorId == process.env.DISCORD_ACCOUNT_ID) {
-                await this.deps.discordWebhookApi.sendMessage('**Bot**: Message received, processing...')
+                await this.deps.discordWebhookApi.sendMessage(
+                    "**Bot**: Message received, processing...",
+                );
                 const response = await this.session.sendMessage(msg.content);
                 await this.deps.discordWebhookApi.sendMessage(response.reply);
             }

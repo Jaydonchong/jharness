@@ -2,19 +2,28 @@
  * Based off of : https://compact-prompt.readthedocs.io/en/latest/
  */
 
+import { ModelConversationMessage } from "../../agents/Interfaces";
 import { CompactionPipeline } from "./CompactionPipeline";
-import {
-    CompactionInput,
-    CompactionOutput,
-    createEmptyCompactionOutput,
-} from "./Interfaces";
+import { CompactionInput, CompactionOutput } from "./Interfaces";
 
 export class CompactionEngine {
-    private pipeline: CompactionPipeline = new CompactionPipeline();
+    //TODO: Move to init once we have more pipeline
+    public constructor(private readonly basePipeline: CompactionPipeline) {}
 
-    public async compactPrompt(
-        input: CompactionInput,
-    ): Promise<CompactionOutput> {
-        return createEmptyCompactionOutput(input);
+    public async compactConversation(input: CompactionInput): Promise<{
+        compacted: string;
+        recentMessage: ModelConversationMessage[];
+    }> {
+        let compactionResult = await this.basePipeline.run(input);
+        return {
+            compacted: this._deserializeCompactionResult(compactionResult),
+            recentMessage: compactionResult.recentMessages,
+        };
+    }
+
+    private _deserializeCompactionResult(output: CompactionOutput): string {
+        return output.compactedResult
+            .map((m) => m.content as string)
+            .join("\n");
     }
 }

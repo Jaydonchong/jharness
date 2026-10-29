@@ -1,12 +1,10 @@
 import { ModelConversationMessage } from "../../agents/Interfaces";
 
 export type CompactionInput = {
-    systemPrompt: ModelConversationMessage;
+    systemPrompt: string;
     messages: ModelConversationMessage[];
     config: {
         factor: number; // Compaction ratio 1-10 representing 0.1-1
-        recencyThreshold: number; // How many user message to retain
-        retainSystemPrompt: true; // Whether to retain system prompt or not
     };
 };
 

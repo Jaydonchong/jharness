@@ -7,6 +7,7 @@ import {
 } from "../network/llmProviders/Interfaces";
 import logger from "../utils/Logger";
 import { DomainError, ErrorCode } from "../utils/ErrorCode";
+import { CompactionEngine } from "../compaction/core/CompactionEngine";
 
 export type TSessionMessageContent =
     | string
@@ -19,8 +20,21 @@ export type TSessionMessageContent =
 type AgentSessionProps<TModelType> = {
     id: string;
     llmProvider: ILlmProvider<unknown>;
-    agent: AbstractAgent; //TODO: General Purpose Agent
+    agent: AbstractAgent;
     model: TModelType;
+    /**
+     *
+     * Separate compaction result here because compacted messages are injected
+     * into systemp prompt post compaction, but should not be preserved in future compaction
+     */
+    onCompact: (
+        messages: ModelConversationMessage[],
+        _conversationCheckpoint: string,
+        agent: AbstractAgent,
+    ) => Promise<{
+        compactedMessaage: string;
+        retainedMessages: ModelConversationMessage[];
+    }>;
 };
 
 export interface ISessionResult {
@@ -38,6 +52,10 @@ const MAX_RETRY_PER_STEP = 3; // Note: retries do not count into agent loop step
 
 export class AgentSession<TModelType> {
     public messages: ModelConversationMessage[] = [];
+    /**
+     * Compaction result
+     */
+    private _conversationCheckpoint: string = "";
 
     constructor(private readonly props: AgentSessionProps<TModelType>) {}
 
@@ -53,7 +71,22 @@ export class AgentSession<TModelType> {
         return this.props.agent;
     }
 
+    public async compactConversation() {
+        const compactedConversation = await this.props.onCompact(
+            this.messages,
+            this._conversationCheckpoint,
+            this.agent,
+        );
+        this._conversationCheckpoint = compactedConversation.compactedMessaage;
+        this.messages = compactedConversation.retainedMessages;
+    }
+
+    /**
+     * We split conversation message from system prompt to make it easier
+     * for conversation processes without affecting system prompt (i.e compaction)
+     */
     public async sendMessage(message: string): Promise<ISessionResult> {
+        // Prepare dynamic message
         const sanitizedMessage = await this.agent.onMessage(message);
         this.messages.push({ role: "user", content: sanitizedMessage });
 
@@ -69,7 +102,9 @@ export class AgentSession<TModelType> {
                     response = await this.llmProvider.generateText({
                         config: {
                             model: this.props.model,
-                            systemPrompt: this.agent.systemPrompt,
+                            systemPrompt:
+                                this.agent.systemPrompt +
+                                this._conversationCheckpoint,
                             availableTools: this.agent.agentTools,
                             outputSchema: this.agent.outputSchema,
                         },

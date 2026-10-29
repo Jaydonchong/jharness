@@ -22,7 +22,7 @@ export class ModelSummarizer<
             return compactioninput;
 
         const systemPrompt = buildPrompt(
-            compactioninput.input.systemPrompt.content as string,
+            compactioninput.input.systemPrompt,
             compactioninput.compactedResult,
         );
 

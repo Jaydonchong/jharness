@@ -12,14 +12,15 @@ export class CompactionPipeline {
 
     constructor() {}
 
-    public addNode(node: AbstractCompactionPipelineNode) {
+    public addNode(node: AbstractCompactionPipelineNode):this {
         if (!this.tail) {
             this.tail = node;
             this.head = node;
-            return;
+            return this;
         }
         this.tail.next = node;
         this.tail = node;
+        return this
     }
 
     public async run(input: CompactionInput): Promise<CompactionOutput> {
@@ -31,11 +32,11 @@ export class CompactionPipeline {
 
         let track: AbstractCompactionPipelineNode | null = this.head;
         let compactedMessage = createEmptyCompactionOutput(input);
+        // Start with full conversation
+        compactedMessage.compactedResult = input.messages
 
-        const haveMessagesToCompact =
-            compactedMessage.compactedResult.length > 0;
-
-        while (track != null && haveMessagesToCompact) {
+        // Short circuit if nothing more to compact, such as in the case where all messages should be retained as is
+        while (track != null && compactedMessage.compactedResult.length > 0) {
             compactedMessage = await track.execute(compactedMessage);
             track = track.next;
         }
