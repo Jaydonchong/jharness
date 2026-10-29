@@ -92,7 +92,9 @@ export abstract class AgentTool<
         });
         return validatedOutput;
     }
-
+    
+    // TODO : Keep each tool's compaction strategy here 
+    // i.e. Freshness requirement and summarization
     protected abstract execute(
         input: z.infer<TInputSchema>,
     ): Promise<z.infer<TOutputSchema>>;

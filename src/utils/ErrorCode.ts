@@ -13,6 +13,9 @@ export enum ErrorCode {
     AI_TOOL_CALL_ERROR = "AI_TOOL_CALL_ERROR",
     AGENT_LOOP_TIMEOUT = "AGENT_LOOP_TIMEOUT",
     MODEL_RESPONSE_VALIDATION_ERROR = "MODEL_RESPONSE_VALIDATION_ERROR", // Unexpected successful response
+
+    COMPACTION_SETUP_ERROR = "COMPACTION_SETUP_ERROR",
+    COMPACTION_RUN_ERROR = "COMPACTION_RUN_ERROR",
 }
 
 export class DomainError extends Error {
@@ -34,4 +37,6 @@ export const asDomainError = (
     code: ErrorCode,
     message: string,
 ): DomainError =>
-    error instanceof DomainError ? error : new DomainError(code, message, error);
+    error instanceof DomainError
+        ? error
+        : new DomainError(code, message, error);
