@@ -20,6 +20,7 @@ import {
     ReadFileTool,
     ShellCommandTool,
     WriteFileTool,
+    WalkDirectoryTool,
     WorkspaceTools,
 } from "./tools/WorkspaceTools";
 import { VERCEL_AI_MODELS, VercelSDK } from "./providers/VercelSDK";
@@ -65,9 +66,10 @@ void (async () => {
         new RecallTool({ contextAssembler }),
     ];
     const workspaceTools: WorkspaceTools = [
-        new ReadFileTool(process.cwd()),
-        new WriteFileTool(process.cwd()),
+        new ReadFileTool(),
+        new WriteFileTool(),
         new ShellCommandTool(process.cwd()),
+        new WalkDirectoryTool(),
     ];
     const gcalSummarizerAgent = new AGcalSummarizer(
         gcalGetCalendarEventsTool,
