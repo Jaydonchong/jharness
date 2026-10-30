@@ -1,5 +1,6 @@
 import { AbstractAgent } from "../agents/AbstractAgent";
 import { ModelConversationMessage } from "../agents/Interfaces";
+import { ToolInvoker } from "../tools/core/ToolInvoker";
 import logger from "../utils/Logger";
 import { DomainError, ErrorCode } from "../utils/ErrorCode";
 import {
@@ -60,8 +61,11 @@ export class AgentSession<TModelType> {
      */
     private _conversationCheckpoint: string = "";
     private _sessionContext: string | null = null;
+    private readonly toolInvoker: ToolInvoker;
 
-    constructor(private readonly props: AgentSessionProps<TModelType>) {}
+    constructor(private readonly props: AgentSessionProps<TModelType>) {
+        this.toolInvoker = new ToolInvoker(this.agent);
+    }
 
     public get id() {
         return this.props.id;
@@ -165,26 +169,10 @@ export class AgentSession<TModelType> {
                     "Tool call stop reason without any tool call",
                 );
             }
-            let toolCallResults = [];
-            // Sequential for now, can be concurrent later
-            for (let i = 0; i < response.toolCalls.length; i++) {
-                let call = response.toolCalls[i];
-                let tool = this.agent.getTool(call.name);
-                let result = await tool.useTool(call.input);
-                toolCallResults.push({
-                    type: "tool-result",
-                    toolCallId: call.id,
-                    toolName: call.name,
-                    output: {
-                        type: "json",
-                        value: result,
-                    },
-                });
-            }
-            this.messages.push({
-                role: "tool",
-                content: toolCallResults,
-            });
+            const toolCallResults = await this.toolInvoker.invoke(
+                response.toolCalls,
+            );
+            this.messages.push(toolCallResults);
         }
 
         if (step >= MAX_AGENT_LOOP_STEP) {
