@@ -1,6 +1,6 @@
 import { GoogleCalendarApi } from "./network/google/GoogleCalendarApi";
 import { MOCK_NEWS } from "./utils/MockData";
-import { GcalGetCalendarEventsTool } from "./tools/GcalTools";
+import { GcalGetCalendarEventsTool } from "./tools/gcal/GcalTools";
 import { Harness } from "./harness/Harness";
 import { DiscordWebhookApi } from "./network/discord/DiscordWebhookApi";
 import { AGeneral } from "./agents/General";
@@ -14,13 +14,13 @@ import { DedupeRepeatedContent } from "./compaction/handlers/DedupeRepeatedConte
 import { CompactionEngine } from "./compaction/core/CompactionEngine";
 import { ContextAssembler } from "./memory/core/ContextAssembler";
 import { LocalFileMemoryStore } from "./memory/memoryStore/LocalFileMemoryStore/LocalFileMemoryStore";
-import { RememberTool } from "./tools/RememberTool";
-import { RecallTool } from "./tools/RecallTool";
-import { ReadFileTool } from "./tools/ReadFileTool";
-import { ShellCommandTool } from "./tools/ShellCommandTool";
-import { WalkDirectoryTool } from "./tools/WalkDirectoryTool";
-import { WriteFileTool } from "./tools/WriteFileTool";
-import { WorkspaceTools } from "./tools/WorkspaceTools";
+import { RememberTool } from "./tools/memory/RememberTool";
+import { RecallTool } from "./tools/memory/RecallTool";
+import { ReadFileTool } from "./tools/workspace/ReadFileTool";
+import { ShellCommandTool } from "./tools/workspace/ShellCommandTool";
+import { WalkDirectoryTool } from "./tools/workspace/WalkDirectoryTool";
+import { WriteFileTool } from "./tools/workspace/WriteFileTool";
+import { WorkspaceToolSet } from "./tools/workspace/WorkspaceToolSet";
 import { VERCEL_AI_MODELS, VercelSDK } from "./providers/VercelSDK";
 
 const PROMPT = MOCK_NEWS;
@@ -63,7 +63,7 @@ void (async () => {
         new RememberTool({ contextAssembler }),
         new RecallTool({ contextAssembler }),
     ];
-    const workspaceTools: WorkspaceTools = [
+    const workspaceTools: WorkspaceToolSet = [
         new ReadFileTool(),
         new WriteFileTool(),
         new ShellCommandTool(process.cwd()),

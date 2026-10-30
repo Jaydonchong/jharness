@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { realpath } from "node:fs/promises";
 import z from "zod";
-import { AgentTool } from "./core/AgentTool";
+import { AgentTool } from "../core/AgentTool";
 
 const MAX_COMMAND_OUTPUT_BYTES = 1024 * 1024;
 const COMMAND_TIMEOUT_MS = 30_000;

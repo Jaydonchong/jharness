@@ -1,8 +1,8 @@
 import z from "zod";
-import { GcalGetCalendarEventsTool } from "../tools/GcalTools";
-import { RecallTool } from "../tools/RecallTool";
-import { RememberTool } from "../tools/RememberTool";
-import { WorkspaceTools } from "../tools/WorkspaceTools";
+import { GcalGetCalendarEventsTool } from "../tools/gcal/GcalTools";
+import { RecallTool } from "../tools/memory/RecallTool";
+import { RememberTool } from "../tools/memory/RememberTool";
+import { WorkspaceToolSet } from "../tools/workspace/WorkspaceToolSet";
 import { AbstractAgent } from "./AbstractAgent";
 
 const timeZone = "Asia/Kuala_Lumpur";
@@ -37,7 +37,7 @@ export class AGcalSummarizer extends AbstractAgent {
     constructor(
         gcalGetCalendarEventsTool: GcalGetCalendarEventsTool,
         memoryTools: [RememberTool, RecallTool],
-        workspaceTools: WorkspaceTools,
+        workspaceTools: WorkspaceToolSet,
     ) {
         super({
             systemPrompt: SYSTEM_PROMPT,

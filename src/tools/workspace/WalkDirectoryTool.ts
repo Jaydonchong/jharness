@@ -1,9 +1,9 @@
 import { lstat, readdir } from "node:fs/promises";
 import path from "node:path";
 import z from "zod";
-import { AgentTool } from "./core/AgentTool";
-import { resolveAbsolutePath } from "./core/WorkspaceFileUtils";
-import { DomainError, ErrorCode } from "../utils/ErrorCode";
+import { AgentTool } from "../core/AgentTool";
+import { resolveAbsolutePath } from "./WorkspaceFileUtils";
+import { DomainError, ErrorCode } from "../../utils/ErrorCode";
 
 const MAX_WALK_ENTRIES = 500;
 

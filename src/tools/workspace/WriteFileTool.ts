@@ -1,8 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import z from "zod";
-import { AgentTool } from "./core/AgentTool";
-import { MAX_FILE_SIZE_BYTES, resolveAbsolutePath } from "./core/WorkspaceFileUtils";
-import { DomainError, ErrorCode } from "../utils/ErrorCode";
+import { AgentTool } from "../core/AgentTool";
+import { MAX_FILE_SIZE_BYTES, resolveAbsolutePath } from "./WorkspaceFileUtils";
+import { DomainError, ErrorCode } from "../../utils/ErrorCode";
 
 export const WriteFileInputSchema = z.object({
     path: z.string().min(1).describe("Absolute path of the file to write"),

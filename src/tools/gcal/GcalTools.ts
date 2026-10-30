@@ -2,8 +2,8 @@ import z from "zod";
 import {
     GoogleCalendarApi,
     ICalendarEvent,
-} from "../network/google/GoogleCalendarApi";
-import { AgentTool } from "./core/AgentTool";
+} from "../../network/google/GoogleCalendarApi";
+import { AgentTool } from "../core/AgentTool";
 
 export const GcalGetCalendarEventInputSchema = z.object({
     start: z
