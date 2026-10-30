@@ -1,6 +1,7 @@
 import { AbstractAgent } from "../agents/AbstractAgent";
 import { ModelConversationMessage } from "../agents/Interfaces";
 import { CompactionEngine } from "../compaction/core/CompactionEngine";
+import { ContextAssembler } from "../memory/core/ContextAssembler";
 import { ILlmProvider } from "../providers/Interfaces";
 import logger from "../utils/Logger";
 import Uuidv4Generator from "../utils/Uuidv4Generator";
@@ -19,6 +20,7 @@ import { AgentSession } from "./AgentSession";
 
 export type IHarnessDeps = {
     compactionEngine: CompactionEngine;
+    contextAssembler: ContextAssembler;
 };
 
 export class Harness {
@@ -67,6 +69,8 @@ export class Harness {
             agent: args.agent,
             model: args.model,
             onCompact: this.doCompaction.bind(this),
+            onNewSessionStart: (input) =>
+                this.deps.contextAssembler.prepareSessionContext(input),
         });
         this.agentSessions.push(session);
         this.agentSessionRegistry.set(session.id, session);

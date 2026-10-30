@@ -1,6 +1,6 @@
 import { ILlmProvider } from "../../providers/Interfaces";
 import { AbstractCompactionPipelineNode } from "../core/AbstractCompactionPipelineNode";
-import { buildPrompt } from "../core/Compaction.prompt";
+import { buildConversationCompactionPrompt } from "../core/prompts/conversation_compaction.prompt";
 import { CompactionOutput } from "../core/Interfaces";
 
 type ModelSummarizerConfig<TModelType> = {
@@ -21,7 +21,7 @@ export class ModelSummarizer<
         if (compactioninput.compactedResult.length === 0)
             return compactioninput;
 
-        const systemPrompt = buildPrompt(
+        const systemPrompt = buildConversationCompactionPrompt(
             compactioninput.input.systemPrompt,
             compactioninput.compactedResult,
         );

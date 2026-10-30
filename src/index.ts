@@ -12,6 +12,8 @@ import { ModelSummarizer } from "./compaction/handlers/ModelSummarizerHandler.ts
 import { RecentMessageRetainHandler } from "./compaction/handlers/RecentMessageRetainHandler";
 import { DedupeRepeatedContent } from "./compaction/handlers/DedupeRepeatedContentHandler";
 import { CompactionEngine } from "./compaction/core/CompactionEngine";
+import { ContextAssembler } from "./memory/core/ContextAssembler";
+import { LocalFileMemoryStore } from "./memory/memoryStore/LocalFileMemoryStore/LocalFileMemoryStore";
 import { VERCEL_AI_MODELS, VercelSDK } from "./providers/VercelSDK";
 
 const PROMPT = MOCK_NEWS;
@@ -48,12 +50,17 @@ void (async () => {
         .addNode(new DedupeRepeatedContent())
         .addNode(summaryCompactionNode);
     const compactionEngine = new CompactionEngine(baseCompactionPipeline);
+    const contextAssembler = new ContextAssembler({
+        memoryStore: new LocalFileMemoryStore(),
+        compactionEngine,
+    });
 
     /**
      * Harness
      */
     const harness = new Harness({
         compactionEngine,
+        contextAssembler,
     });
     const session = harness.newSession({
         llmProvider: vercelSDK,

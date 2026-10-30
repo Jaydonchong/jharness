@@ -34,6 +34,10 @@ type AgentSessionProps<TModelType> = {
         compactedMessaage: string;
         retainedMessages: ModelConversationMessage[];
     }>;
+    onNewSessionStart: (input: {
+        systemPrompt: string;
+        userPrompt: string;
+    }) => Promise<string>;
 };
 
 export interface ISessionResult {
@@ -55,6 +59,7 @@ export class AgentSession<TModelType> {
      * Compaction result
      */
     private _conversationCheckpoint: string = "";
+    private _sessionContext: string | null = null;
 
     constructor(private readonly props: AgentSessionProps<TModelType>) {}
 
@@ -80,11 +85,28 @@ export class AgentSession<TModelType> {
         this.messages = compactedConversation.retainedMessages;
     }
 
+    private async startNewSession(userPrompt: string): Promise<void> {
+        if (this._sessionContext !== null) return;
+
+        this._sessionContext = await this.props.onNewSessionStart({
+            systemPrompt: this.agent.systemPrompt,
+            userPrompt,
+        });
+    }
+
+    private getSessionSystemPrompt(): string {
+        return [this.agent.systemPrompt, this._sessionContext]
+            .filter((context): context is string => Boolean(context))
+            .join("\n");
+    }
+
     /**
      * We split conversation message from system prompt to make it easier
      * for conversation processes without affecting system prompt (i.e compaction)
      */
     public async sendMessage(message: string): Promise<ISessionResult> {
+        await this.startNewSession(message);
+
         // Prepare dynamic message
         const sanitizedMessage = await this.agent.onMessage(message);
         this.messages.push({ role: "user", content: sanitizedMessage });
@@ -101,9 +123,12 @@ export class AgentSession<TModelType> {
                     response = await this.llmProvider.generateText({
                         config: {
                             model: this.props.model,
-                            systemPrompt:
-                                this.agent.systemPrompt +
+                            systemPrompt: [
+                                this.getSessionSystemPrompt(),
                                 this._conversationCheckpoint,
+                            ]
+                                .filter(Boolean)
+                                .join("\n"),
                             availableTools: this.agent.agentTools,
                             outputSchema: this.agent.outputSchema,
                         },
@@ -200,6 +225,7 @@ export class AgentSession<TModelType> {
     }
 
     public async *streamMessage(message: string): AsyncGenerator<string> {
+        await this.startNewSession(message);
         this.messages.push({ role: "user", content: message });
 
         // Loop
@@ -213,7 +239,7 @@ export class AgentSession<TModelType> {
             const response = await this.llmProvider.streamText({
                 config: {
                     model: this.props.model,
-                    systemPrompt: this.agent.systemPrompt,
+                    systemPrompt: this.getSessionSystemPrompt(),
                     availableTools: this.agent.agentTools,
                     outputSchema: this.agent.outputSchema,
                 },

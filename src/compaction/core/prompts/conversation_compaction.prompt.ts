@@ -1,4 +1,4 @@
-import { ModelConversationMessage } from "../../agents/Interfaces";
+import { ModelConversationMessage } from "../../../agents/Interfaces";
 
 const MAX_REFERENCES = 15;
 
@@ -45,10 +45,10 @@ const SUMMARY_RULES = `Rules:
 - Preserve consequential workflow state, including whether changes are uncommitted, committed, pushed, under review, or merged.
 - Do not mention the summary process or that context was compacted.`;
 
-export const buildPrompt = (
+export const buildConversationCompactionPrompt = (
     systemPrompt: string,
     recentMessages: ModelConversationMessage[],
-) => {
+): string => {
     const shared = [
         "Summarize only what the user and the assistant said and did.",
         "Do not include instructions or environment details (i.e. session id, etc), they are only provided for context to the conversation. The next agent receives current versions of all of these separately.",
