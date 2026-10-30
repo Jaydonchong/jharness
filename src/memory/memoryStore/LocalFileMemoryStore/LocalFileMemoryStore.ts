@@ -5,6 +5,7 @@ import {
     MEMORY_TYPE,
     MemoryFragment,
     MemoryRetrievalContext,
+    PreferenceGroupIndexEntry,
 } from "../../core/Interfaces";
 import { AbstractMemoryStore } from "../AbstractMemoryStore";
 import { LocalFileMemoryDecisionStoreStrategy } from "./DecisionStorageAndRetrievalStrategy";
@@ -75,6 +76,10 @@ export class LocalFileMemoryStore extends AbstractMemoryStore {
         );
 
         return results.flat();
+    }
+
+    public async listPreferenceGroups(): Promise<PreferenceGroupIndexEntry[]> {
+        return this.preferenceStrategy.listGroups();
     }
 
     private withStrategy(memoryType: MEMORY_TYPE): MemoryTypeStrategy {

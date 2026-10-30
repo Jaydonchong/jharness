@@ -16,6 +16,15 @@ export type MemoryFragment = {
     additionalContext?: Record<string, unknown>;
 };
 
+export type PreferenceGroupIndexEntry = {
+    group: string;
+    created: string;
+    updated: string;
+    tags: string[];
+    origin: "system" | "user";
+    filePaths: string[];
+};
+
 export type MemoryRetrievalContext = {
     context: {
         query: string;

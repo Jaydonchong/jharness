@@ -6,6 +6,7 @@ import {
     MEMORY_TYPE,
     MemoryFragment,
     MemoryRetrievalContext,
+    PreferenceGroupIndexEntry,
 } from "./Interfaces";
 
 type IContextAssemblerDeps = {
@@ -32,13 +33,32 @@ export class ContextAssembler {
         );
     }
 
+    public async remember(memory: MemoryFragment): Promise<void> {
+        await this.deps.memoryStore.store(memory);
+    }
+
+    public async recall(
+        retrievalContext: MemoryRetrievalContext,
+    ): Promise<Partial<MemoryFragment[]>> {
+        return await this.deps.memoryStore.retrieve(retrievalContext);
+    }
+
+    public async listPreferenceGroups(): Promise<PreferenceGroupIndexEntry[]> {
+        return this.deps.memoryStore.listPreferenceGroups();
+    }
+
     public async prepareSessionContext(input: {
         systemPrompt: string;
         userPrompt: string;
     }): Promise<string> {
-        const preferences = await this.retrievePreference({
-            query: input.userPrompt,
-            recentContext: input.systemPrompt,
+        const preferences = await this.recall({
+            context: {
+                query: input.userPrompt,
+                recentContext: input.systemPrompt,
+            },
+            filters: {
+                types: [MEMORY_TYPE.PREFERENCE],
+            },
         });
 
         const preferenceMessages: ModelConversationMessage[] = preferences
@@ -73,17 +93,6 @@ export class ContextAssembler {
             context,
             filters: {
                 types: [MEMORY_TYPE.DECISION],
-            },
-        });
-    }
-
-    private async retrievePreference(
-        context: MemoryRetrievalContext["context"],
-    ): Promise<Partial<MemoryFragment[]>> {
-        return await this.deps.memoryStore.retrieve({
-            context,
-            filters: {
-                types: [MEMORY_TYPE.PREFERENCE],
             },
         });
     }

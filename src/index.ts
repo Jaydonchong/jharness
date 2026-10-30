@@ -14,6 +14,8 @@ import { DedupeRepeatedContent } from "./compaction/handlers/DedupeRepeatedConte
 import { CompactionEngine } from "./compaction/core/CompactionEngine";
 import { ContextAssembler } from "./memory/core/ContextAssembler";
 import { LocalFileMemoryStore } from "./memory/memoryStore/LocalFileMemoryStore/LocalFileMemoryStore";
+import { RememberTool } from "./tools/RememberTool";
+import { RecallTool } from "./tools/RecallTool";
 import { VERCEL_AI_MODELS, VercelSDK } from "./providers/VercelSDK";
 
 const PROMPT = MOCK_NEWS;
@@ -33,8 +35,6 @@ void (async () => {
     /**
      * Agent
      */
-    const gcalSummarizerAgent = new AGcalSummarizer(gcalGetCalendarEventsTool);
-    const generalPurposeAgent = new AGeneral();
 
     /**
      * Compaction Engine
@@ -54,6 +54,15 @@ void (async () => {
         memoryStore: new LocalFileMemoryStore(),
         compactionEngine,
     });
+    const memoryTools: [RememberTool, RecallTool] = [
+        new RememberTool({ contextAssembler }),
+        new RecallTool({ contextAssembler }),
+    ];
+    const gcalSummarizerAgent = new AGcalSummarizer(
+        gcalGetCalendarEventsTool,
+        memoryTools,
+    );
+    const generalPurposeAgent = new AGeneral(memoryTools);
 
     /**
      * Harness

@@ -15,6 +15,7 @@ import {
     MEMORY_TYPE,
     MemoryFragment,
     MemoryRetrievalContext,
+    PreferenceGroupIndexEntry,
 } from "../../core/Interfaces";
 import {
     IMemoryRetrievalStrategy,
@@ -42,14 +43,7 @@ export type PreferenceChunk = {
     content: string;
 };
 
-export type PreferenceChunkGroup = {
-    group: string;
-    created: string;
-    updated: string;
-    tags: string[];
-    origin: "system" | "user";
-    filePaths: string[];
-};
+export type PreferenceChunkGroup = PreferenceGroupIndexEntry;
 
 export type PreferenceRetrievalResult = PreferenceChunkGroup[];
 
@@ -104,6 +98,15 @@ export class PreferenceStorageAndRetrievalStrategy
         _prompt: MemoryRetrievalContext,
     ): Promise<Partial<MemoryFragment[]>> {
         const retrieval = this.writeQueue.then(() => this.readPreferences());
+        this.writeQueue = retrieval.then(
+            () => undefined,
+            () => undefined,
+        );
+        return retrieval;
+    }
+
+    listGroups(): Promise<PreferenceChunkGroup[]> {
+        const retrieval = this.writeQueue.then(() => this.readGroups());
         this.writeQueue = retrieval.then(
             () => undefined,
             () => undefined,

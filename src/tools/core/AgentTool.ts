@@ -12,6 +12,10 @@ export type IAgentTool<
     outputSchema: TOutputSchema;
 };
 
+export type AgentToolExecutionContext = {
+    sessionId?: string;
+};
+
 export abstract class AgentTool<
     TInputSchema extends z.ZodType,
     TOutputSchema extends z.ZodType,
@@ -97,14 +101,16 @@ export abstract class AgentTool<
     // i.e. Freshness requirement and summarization
     protected abstract execute(
         input: z.infer<TInputSchema>,
+        context?: AgentToolExecutionContext,
     ): Promise<z.infer<TOutputSchema>>;
 
     public async useTool(
         input: z.infer<TInputSchema>,
+        context?: AgentToolExecutionContext,
     ): Promise<z.infer<TOutputSchema>> {
         try {
             const processedInput = await this._preToolCheck(input);
-            const result = await this.execute(processedInput);
+            const result = await this.execute(processedInput, context);
             return await this._postToolCheck(processedInput, result);
         } catch (error) {
             throw asDomainError(

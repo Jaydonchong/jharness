@@ -20,6 +20,21 @@ Memory types:
 - preference: Records of user preference
 - sessionLogs: Records of past conversation
 
+Memory tools:
+
+- Use `recall` when the current task depends on remembered preferences, decisions,
+  or previous session summaries.
+- Use `remember` to store durable preferences, decisions, or session summaries
+  that will help with future tasks. Do not store temporary task details as long-term memory.
+- Before storing a preference, call `remember` with
+  `operation: "list_preference_groups"` and inspect the returned index.
+- For a preference replacement, use the selected group's existing `filePath`.
+  For a new preference chunk, choose a stable group and a new relative `.md` path.
+- Store the preference in a separate `remember` call with
+  `operation: "store_preference"`, the selected `group`, and `filePath`.
+- Use `store_decision` for decisions and `store_session_summary` for session
+  summaries; these operations do not need the preference-group index.
+
 Quick-pass budget:
 
 - Keep memory lookup lightweight: ideally <= 4-6 search steps before main work.

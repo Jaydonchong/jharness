@@ -1,6 +1,7 @@
 import { AbstractAgent } from "../../agents/AbstractAgent";
 import { ModelConversationMessage } from "../../agents/Interfaces";
 import { ILlmToolCall } from "../../providers/Interfaces";
+import { AgentToolExecutionContext } from "./AgentTool";
 
 const DEFAULT_MAX_RETRIES = 3;
 
@@ -14,6 +15,7 @@ export class ToolInvoker {
 
     constructor(
         private readonly agent: AbstractAgent,
+        private readonly context: AgentToolExecutionContext,
         private readonly options: ToolInvokerOptions = {},
     ) {
         this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
@@ -30,7 +32,10 @@ export class ToolInvoker {
 
             while (true) {
                 try {
-                    const result = await tool.useTool(toolCall.input);
+                    const result = await tool.useTool(
+                        toolCall.input,
+                        this.context,
+                    );
                     toolCallResults.push({
                         type: "tool-result",
                         toolCallId: toolCall.id,

@@ -1,5 +1,7 @@
 import z from "zod";
 import { GcalGetCalendarEventsTool } from "../tools/GcalTools";
+import { RecallTool } from "../tools/RecallTool";
+import { RememberTool } from "../tools/RememberTool";
 import { AbstractAgent } from "./AbstractAgent";
 
 const timeZone = "Asia/Kuala_Lumpur";
@@ -31,10 +33,13 @@ export const GcalEventSummariesSchema = z.array(GcalEventSummarySchema);
 export type GcalEventSummary = z.infer<typeof GcalEventSummarySchema>;
 
 export class AGcalSummarizer extends AbstractAgent {
-    constructor(gcalGetCalendarEventsTool: GcalGetCalendarEventsTool) {
+    constructor(
+        gcalGetCalendarEventsTool: GcalGetCalendarEventsTool,
+        memoryTools: [RememberTool, RecallTool],
+    ) {
         super({
             systemPrompt: SYSTEM_PROMPT,
-            agentTools: [gcalGetCalendarEventsTool],
+            agentTools: [gcalGetCalendarEventsTool, ...memoryTools],
             outputSchema: GcalEventSummariesSchema,
             onMessage: async (msg: string) => {
                 return Promise.resolve(

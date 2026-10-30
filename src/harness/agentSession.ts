@@ -64,7 +64,7 @@ export class AgentSession<TModelType> {
     private readonly toolInvoker: ToolInvoker;
 
     constructor(private readonly props: AgentSessionProps<TModelType>) {
-        this.toolInvoker = new ToolInvoker(this.agent);
+        this.toolInvoker = new ToolInvoker(this.agent, { sessionId: this.id });
     }
 
     public get id() {
