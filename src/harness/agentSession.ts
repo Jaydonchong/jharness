@@ -39,6 +39,24 @@ type AgentSessionProps<TModelType> = {
         systemPrompt: string;
         userPrompt: string;
     }) => Promise<string>;
+    onSessionEvent: (
+        eventType: AgentSessionEventType,
+        context: AgentSessionEventContext,
+    ) => void;
+};
+
+export type AgentSessionEventType =
+    | "session_start"
+    | "session_model"
+    | "user_message"
+    | "assistant_message"
+    | "compaction";
+
+export type AgentSessionEventContext = {
+    provider?: string;
+    model?: string;
+    message?: string;
+    systemPrompt?: string;
 };
 
 export interface ISessionResult {
@@ -61,6 +79,8 @@ export class AgentSession<TModelType> {
      */
     private _conversationCheckpoint: string = "";
     private _sessionContext: string | null = null;
+    private _sessionStartPromise: Promise<void> | null = null;
+    private _sessionEventsStarted = false;
     private readonly toolInvoker: ToolInvoker;
 
     constructor(private readonly props: AgentSessionProps<TModelType>) {
@@ -87,15 +107,48 @@ export class AgentSession<TModelType> {
         );
         this._conversationCheckpoint = compactedConversation.compactedMessaage;
         this.messages = compactedConversation.retainedMessages;
+        this.emitSessionEvent("compaction", {});
     }
 
-    private async startNewSession(userPrompt: string): Promise<void> {
-        if (this._sessionContext !== null) return;
+    private async startNewSession(userPrompt: string): Promise<boolean> {
+        if (this._sessionContext !== null) return false;
+        if (this._sessionStartPromise !== null) {
+            await this._sessionStartPromise;
+            return false;
+        }
 
-        this._sessionContext = await this.props.onNewSessionStart({
-            systemPrompt: this.agent.systemPrompt,
-            userPrompt,
-        });
+        if (!this._sessionEventsStarted) {
+            this.emitSessionEvent("session_start", {});
+            this.emitSessionEvent("session_model", {
+                provider: this.llmProvider.constructor.name,
+                model: getModelName(this.props.model),
+            });
+            this._sessionEventsStarted = true;
+        }
+        this._sessionStartPromise = (async () => {
+            this._sessionContext = await this.props.onNewSessionStart({
+                systemPrompt: this.agent.systemPrompt,
+                userPrompt,
+            });
+        })();
+        try {
+            await this._sessionStartPromise;
+        } catch (error) {
+            this._sessionStartPromise = null;
+            throw error;
+        }
+        return true;
+    }
+
+    private emitSessionEvent(
+        eventType: AgentSessionEventType,
+        context: AgentSessionEventContext,
+    ): void {
+        try {
+            this.props.onSessionEvent(eventType, context);
+        } catch (error) {
+            logger.error("Unable to queue session log event", { error });
+        }
     }
 
     private getSessionSystemPrompt(): string {
@@ -109,10 +162,16 @@ export class AgentSession<TModelType> {
      * for conversation processes without affecting system prompt (i.e compaction)
      */
     public async sendMessage(message: string): Promise<ISessionResult> {
-        await this.startNewSession(message);
+        const isFirstMessage = await this.startNewSession(message);
 
         // Prepare dynamic message
         const sanitizedMessage = await this.agent.onMessage(message);
+        this.emitSessionEvent("user_message", {
+            message: sanitizedMessage,
+            ...(isFirstMessage
+                ? { systemPrompt: this.getSessionSystemPrompt() }
+                : {}),
+        });
         this.messages.push({ role: "user", content: sanitizedMessage });
 
         // Loop
@@ -192,6 +251,9 @@ export class AgentSession<TModelType> {
         }
 
         if (response.stopReason === LlmTextStopReason.STOP) {
+            this.emitSessionEvent("assistant_message", {
+                message: response.reply,
+            });
             return { reply: response.reply, output: response.output };
         }
 
@@ -213,12 +275,19 @@ export class AgentSession<TModelType> {
     }
 
     public async *streamMessage(message: string): AsyncGenerator<string> {
-        await this.startNewSession(message);
+        const isFirstMessage = await this.startNewSession(message);
+        this.emitSessionEvent("user_message", {
+            message,
+            ...(isFirstMessage
+                ? { systemPrompt: this.getSessionSystemPrompt() }
+                : {}),
+        });
         this.messages.push({ role: "user", content: message });
 
         // Loop
         const MAX_ITERATION = 10;
         let iteration = 0;
+        let assistantReply = "";
         let stopReason: LlmTextStopReason = LlmTextStopReason.TOOL_CALL;
         while (
             stopReason === LlmTextStopReason.TOOL_CALL &&
@@ -235,13 +304,19 @@ export class AgentSession<TModelType> {
             });
 
             for await (const chunk of response.reply) {
+                assistantReply += chunk;
                 yield chunk;
             }
 
             const completed = await response.completed;
             stopReason = completed.stopReason;
 
-            if (stopReason === LlmTextStopReason.STOP) return;
+            if (stopReason === LlmTextStopReason.STOP) {
+                this.emitSessionEvent("assistant_message", {
+                    message: assistantReply,
+                });
+                return;
+            }
 
             if (stopReason !== LlmTextStopReason.TOOL_CALL) {
                 throw new DomainError(
@@ -259,4 +334,17 @@ export class AgentSession<TModelType> {
             "Agent loop reached its iteration limit",
         );
     }
+}
+
+function getModelName(model: unknown): string {
+    if (typeof model === "string") return model;
+    if (
+        typeof model === "object" &&
+        model !== null &&
+        "modelId" in model &&
+        typeof model.modelId === "string"
+    ) {
+        return model.modelId;
+    }
+    return String(model);
 }

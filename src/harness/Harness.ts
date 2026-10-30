@@ -6,6 +6,7 @@ import { ILlmProvider } from "../providers/Interfaces";
 import logger from "../utils/Logger";
 import Uuidv4Generator from "../utils/Uuidv4Generator";
 import { AgentSession } from "./AgentSession";
+import { HarnessSessionLogger } from "./HarnessSessionLogger";
 
 /**
  * TODO
@@ -26,8 +27,15 @@ export type IHarnessDeps = {
 export class Harness {
     public agentSessions: AgentSession<unknown>[] = [];
     public agentSessionRegistry: Map<string, AgentSession<unknown>> = new Map();
+    private readonly sessionLogger: HarnessSessionLogger;
 
-    public constructor(private readonly deps: IHarnessDeps) {}
+    public constructor(private readonly deps: IHarnessDeps) {
+        this.sessionLogger = new HarnessSessionLogger();
+    }
+
+    public async close(): Promise<void> {
+        await this.sessionLogger.close();
+    }
 
     public getSession(id: string) {
         return this.agentSessionRegistry.get(id);
@@ -63,14 +71,18 @@ export class Harness {
         agent: AbstractAgent;
         model: TModelType;
     }): AgentSession<TModelType> {
+        const sessionId = Uuidv4Generator.generateUuid();
+        this.sessionLogger.createSession(sessionId);
         const session = new AgentSession({
-            id: Uuidv4Generator.generateUuid(),
+            id: sessionId,
             llmProvider: args.llmProvider,
             agent: args.agent,
             model: args.model,
             onCompact: this.doCompaction.bind(this),
             onNewSessionStart: (input) =>
                 this.deps.contextAssembler.prepareSessionContext(input),
+            onSessionEvent: (eventType, context) =>
+                this.sessionLogger.onSessionEvent(sessionId, eventType, context),
         });
         this.agentSessions.push(session);
         this.agentSessionRegistry.set(session.id, session);

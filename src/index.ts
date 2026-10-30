@@ -118,6 +118,7 @@ void (async () => {
 
     await Promise.all([discordProductivityAssistantService.run()]);
 
+    await harness.close();
     console.info("====COMPLETED====");
     process.exit(0);
 })().catch((error) => {
