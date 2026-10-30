@@ -140,22 +140,6 @@ export class AgentSession<TModelType> {
         }
     }
 
-    private async startNewSession(userPrompt: string): Promise<void> {
-        this.props.sessionState.transitionTo(SessionStatus.INITIALIZING);
-        try {
-            this._sessionContext = await this.props.onNewSessionStart({
-                systemPrompt: this.agent.systemPrompt,
-                userPrompt,
-            });
-            this.emitSessionEvent(AgentSessionEventType.SYSTEM_MESSAGE, {
-                message: this.getSessionSystemPrompt(),
-            });
-        } catch (error) {
-            this.props.sessionState.transitionTo(SessionStatus.START);
-            throw error;
-        }
-    }
-
     private emitSessionEvent(
         eventType: AgentSessionEventType,
         context: AgentSessionEventContext,
@@ -173,13 +157,21 @@ export class AgentSession<TModelType> {
             .join("\n");
     }
 
-    /**
-     * We split conversation message from system prompt to make it easier
-     * for conversation processes without affecting system prompt (i.e compaction)
-     */
-    public async sendMessage(message: string): Promise<ISessionResult> {
+    private async initSessionCheck(message: string) {
         if (this.state === SessionStatus.START) {
-            await this.startNewSession(message);
+            this.props.sessionState.transitionTo(SessionStatus.INITIALIZING);
+            try {
+                this._sessionContext = await this.props.onNewSessionStart({
+                    systemPrompt: this.agent.systemPrompt,
+                    userPrompt: message,
+                });
+                this.emitSessionEvent(AgentSessionEventType.SYSTEM_MESSAGE, {
+                    message: this.getSessionSystemPrompt(),
+                });
+            } catch (error) {
+                this.props.sessionState.transitionTo(SessionStatus.START);
+                throw error;
+            }
             this.props.sessionState.transitionTo(SessionStatus.WAITING);
         } else if (this.state === SessionStatus.INITIALIZING) {
             throw new DomainError(
@@ -187,6 +179,14 @@ export class AgentSession<TModelType> {
                 "Session initialization is already in progress",
             );
         }
+    }
+
+    /**
+     * We split conversation message from system prompt to make it easier
+     * for conversation processes without affecting system prompt (i.e compaction)
+     */
+    public async sendMessage(message: string): Promise<ISessionResult> {
+        await this.initSessionCheck(message);
         // Prepare dynamic message
         const sanitizedMessage = await this.agent.onMessage(message);
         this.emitSessionEvent(AgentSessionEventType.USER_MESSAGE, {
@@ -202,9 +202,7 @@ export class AgentSession<TModelType> {
             let retries = 0;
 
             while (retries < MAX_RETRY_PER_STEP) {
-                this.props.sessionState.transitionTo(
-                    SessionStatus.REASONING,
-                );
+                this.props.sessionState.transitionTo(SessionStatus.REASONING);
                 try {
                     response = await this.llmProvider.generateText({
                         config: {
@@ -224,7 +222,10 @@ export class AgentSession<TModelType> {
                     break;
                 } catch (error) {
                     retries++;
-                    this.emitSessionEvent(AgentSessionEventType.SESSION_ERROR, {});
+                    this.emitSessionEvent(
+                        AgentSessionEventType.SESSION_ERROR,
+                        {},
+                    );
                 }
             }
 
@@ -314,15 +315,7 @@ export class AgentSession<TModelType> {
     }
 
     public async *streamMessage(message: string): AsyncGenerator<string> {
-        if (this.state === SessionStatus.START) {
-            await this.startNewSession(message);
-            this.props.sessionState.transitionTo(SessionStatus.WAITING);
-        } else if (this.state === SessionStatus.INITIALIZING) {
-            throw new DomainError(
-                ErrorCode.VALIDATION_ERROR,
-                "Session initialization is already in progress",
-            );
-        }
+        await this.initSessionCheck(message)
         this.emitSessionEvent(AgentSessionEventType.USER_MESSAGE, {
             message,
         });
