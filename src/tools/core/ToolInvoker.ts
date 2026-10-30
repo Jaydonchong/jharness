@@ -5,6 +5,19 @@ import { AgentToolExecutionContext } from "./AgentTool";
 
 const DEFAULT_MAX_RETRIES = 3;
 
+export type ToolInvocationContext = AgentToolExecutionContext & {
+    sessionId: string;
+};
+
+export interface IToolInvocationLogger {
+    onToolCall(sessionId: string, toolCall: ILlmToolCall): void;
+    onToolResult(
+        sessionId: string,
+        toolCall: ILlmToolCall,
+        output: unknown,
+    ): void;
+}
+
 export type ToolInvokerOptions = {
     maxRetries?: number;
     shouldRetry?: (error: unknown, toolCall: ILlmToolCall) => boolean;
@@ -15,7 +28,8 @@ export class ToolInvoker {
 
     constructor(
         private readonly agent: AbstractAgent,
-        private readonly context: AgentToolExecutionContext,
+        private readonly context: ToolInvocationContext,
+        private readonly sessionLogger: IToolInvocationLogger,
         private readonly options: ToolInvokerOptions = {},
     ) {
         this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
@@ -27,6 +41,7 @@ export class ToolInvoker {
         const toolCallResults: Record<string, unknown>[] = [];
 
         for (const toolCall of toolCalls) {
+            this.logToolCall(toolCall);
             const tool = this.agent.getTool(toolCall.name);
             let retries = 0;
 
@@ -36,6 +51,7 @@ export class ToolInvoker {
                         toolCall.input,
                         this.context,
                     );
+                    this.logToolResult(toolCall, result);
                     toolCallResults.push({
                         type: "tool-result",
                         toolCallId: toolCall.id,
@@ -63,5 +79,17 @@ export class ToolInvoker {
             role: "tool",
             content: toolCallResults,
         };
+    }
+
+    public logToolCall(toolCall: ILlmToolCall): void {
+        this.sessionLogger.onToolCall(this.context.sessionId, toolCall);
+    }
+
+    public logToolResult(toolCall: ILlmToolCall, output: unknown): void {
+        this.sessionLogger.onToolResult(
+            this.context.sessionId,
+            toolCall,
+            output,
+        );
     }
 }

@@ -5,6 +5,7 @@ export enum SessionStatus {
     WAITING = "WAITING",
     REASONING = "REASONING",
     TOOL = "TOOL",
+    COMPACTING = "COMPACTING",
     END = "END",
 }
 
@@ -21,14 +22,23 @@ const SESSION_STATE_TRANSITION_REGISTRY: Record<
     SessionStatus,
     SessionStatus[]
 > = {
-    [SessionStatus.START]: [SessionStatus.REASONING, SessionStatus.END],
-    [SessionStatus.WAITING]: [SessionStatus.REASONING, SessionStatus.END],
+    [SessionStatus.START]: [
+        SessionStatus.REASONING,
+        SessionStatus.COMPACTING,
+        SessionStatus.END,
+    ],
+    [SessionStatus.WAITING]: [
+        SessionStatus.REASONING,
+        SessionStatus.COMPACTING,
+        SessionStatus.END,
+    ],
     [SessionStatus.REASONING]: [
         SessionStatus.TOOL,
         SessionStatus.WAITING,
         SessionStatus.END,
     ],
     [SessionStatus.TOOL]: [SessionStatus.REASONING, SessionStatus.END],
+    [SessionStatus.COMPACTING]: [SessionStatus.WAITING, SessionStatus.END],
     [SessionStatus.END]: [],
 };
 
@@ -43,7 +53,15 @@ export class SessionState {
 
     public transitionTo(nextState: SessionStatus): void {
         const previousState = this.state;
-        if (previousState === nextState) return;
+        if (previousState === nextState) {
+            if (nextState === SessionStatus.COMPACTING) {
+                throw new DomainError(
+                    ErrorCode.VALIDATION_ERROR,
+                    `Invalid session state transition: ${previousState} -> ${nextState}`,
+                );
+            }
+            return;
+        }
         if (!SESSION_STATE_TRANSITION_REGISTRY[previousState].includes(nextState)) {
             throw new DomainError(
                 ErrorCode.VALIDATION_ERROR,

@@ -85,6 +85,7 @@ export class Harness {
                 this.deps.contextAssembler.prepareSessionContext(input),
             onSessionEvent: (eventType, context) =>
                 this.sessionLogger.onSessionEvent(sessionId, eventType, context),
+            sessionLogger: this.sessionLogger,
             sessionState,
         });
         this.agentSessions.push(session);

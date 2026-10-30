@@ -4,10 +4,12 @@ import { once } from "node:events";
 import path from "node:path";
 import { finished } from "node:stream/promises";
 import logger from "../utils/Logger";
+import type { ILlmToolCall } from "../providers/Interfaces";
+import type { IToolInvocationLogger } from "../tools/core/ToolInvoker";
 import { AgentSessionEventType } from "./AgentSession";
 import type { AgentSessionEventContext } from "./AgentSession";
 
-export class HarnessSessionLogger {
+export class HarnessSessionLogger implements IToolInvocationLogger {
     private readonly queues = new Map<string, Promise<void>>();
     private readonly streams = new Map<string, WriteStream>();
     private readonly streamErrors = new Map<string, Error>();
@@ -67,6 +69,26 @@ export class HarnessSessionLogger {
             if (!stream.write(line)) {
                 await once(stream, "drain");
             }
+        });
+    }
+
+    public onToolCall(sessionId: string, toolCall: ILlmToolCall): void {
+        this.onSessionEvent(sessionId, AgentSessionEventType.TOOL_CALL, {
+            toolId: toolCall.id,
+            toolName: toolCall.name,
+            input: toolCall.input,
+        });
+    }
+
+    public onToolResult(
+        sessionId: string,
+        toolCall: ILlmToolCall,
+        output: unknown,
+    ): void {
+        this.onSessionEvent(sessionId, AgentSessionEventType.TOOL_RESULT, {
+            toolId: toolCall.id,
+            toolName: toolCall.name,
+            output,
         });
     }
 

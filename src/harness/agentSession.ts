@@ -1,6 +1,7 @@
 import { AbstractAgent } from "../agents/AbstractAgent";
 import { ModelConversationMessage } from "../agents/Interfaces";
 import { ToolInvoker } from "../tools/core/ToolInvoker";
+import type { IToolInvocationLogger } from "../tools/core/ToolInvoker";
 import logger from "../utils/Logger";
 import { DomainError, ErrorCode } from "../utils/ErrorCode";
 import { SessionState, SessionStatus } from "./SessionState";
@@ -44,6 +45,7 @@ type AgentSessionProps<TModelType> = {
         eventType: AgentSessionEventType,
         context: AgentSessionEventContext,
     ) => void;
+    sessionLogger: IToolInvocationLogger;
     sessionState: SessionState;
 };
 
@@ -95,7 +97,11 @@ export class AgentSession<TModelType> {
     private readonly toolInvoker: ToolInvoker;
 
     constructor(private readonly props: AgentSessionProps<TModelType>) {
-        this.toolInvoker = new ToolInvoker(this.agent, { sessionId: this.id });
+        this.toolInvoker = new ToolInvoker(
+            this.agent,
+            { sessionId: this.id },
+            this.props.sessionLogger,
+        );
     }
 
     public get id() {
@@ -115,16 +121,20 @@ export class AgentSession<TModelType> {
     }
 
     public async compactConversation() {
-        this.props.sessionState.transitionTo(SessionStatus.REASONING);
-        const compactedConversation = await this.props.onCompact(
-            this.messages,
-            this._conversationCheckpoint,
-            this.agent,
-        );
-        this._conversationCheckpoint = compactedConversation.compactedMessaage;
-        this.messages = compactedConversation.retainedMessages;
-        this.emitSessionEvent(AgentSessionEventType.COMPACTION, {});
-        this.props.sessionState.transitionTo(SessionStatus.WAITING);
+        this.props.sessionState.transitionTo(SessionStatus.COMPACTING);
+        try {
+            const compactedConversation = await this.props.onCompact(
+                this.messages,
+                this._conversationCheckpoint,
+                this.agent,
+            );
+            this._conversationCheckpoint =
+                compactedConversation.compactedMessaage;
+            this.messages = compactedConversation.retainedMessages;
+            this.emitSessionEvent(AgentSessionEventType.COMPACTION, {});
+        } finally {
+            this.props.sessionState.transitionTo(SessionStatus.WAITING);
+        }
     }
 
     private async startNewSession(userPrompt: string): Promise<boolean> {
@@ -256,23 +266,9 @@ export class AgentSession<TModelType> {
                 );
             }
             this.props.sessionState.transitionTo(SessionStatus.TOOL);
-            for (const toolCall of response.toolCalls) {
-                this.emitSessionEvent(AgentSessionEventType.TOOL_CALL, {
-                    toolId: toolCall.id,
-                    toolName: toolCall.name,
-                    input: toolCall.input,
-                });
-            }
             const toolCallResults = await this.toolInvoker.invoke(
                 response.toolCalls,
             );
-            if (Array.isArray(toolCallResults.content)) {
-                const results = toolCallResults.content.filter(
-                    (result): result is Record<string, unknown> =>
-                        typeof result === "object" && result !== null,
-                );
-                this.emitToolResultEvents(results);
-            }
             this.messages.push(toolCallResults);
         }
 
@@ -323,76 +319,6 @@ export class AgentSession<TModelType> {
         }
     }
 
-    private emitToolEvents(messages: ModelConversationMessage[]): void {
-        const toolNames = new Map<string, string>();
-        for (const message of messages) {
-            if (!Array.isArray(message.content)) continue;
-            for (const part of message.content) {
-                if (
-                    typeof part === "object" &&
-                    part !== null &&
-                    part.type === "tool-call" &&
-                    typeof part.toolCallId === "string" &&
-                    typeof part.toolName === "string"
-                ) {
-                    toolNames.set(part.toolCallId, part.toolName);
-                }
-            }
-        }
-
-        for (const message of messages) {
-            if (!Array.isArray(message.content)) continue;
-            for (const part of message.content) {
-                if (typeof part !== "object" || part === null) continue;
-                if (part.type === "tool-call") {
-                    if (
-                        typeof part.toolCallId === "string" &&
-                        typeof part.toolName === "string"
-                    ) {
-                        this.emitSessionEvent(AgentSessionEventType.TOOL_CALL, {
-                            toolId: part.toolCallId,
-                            toolName: part.toolName,
-                            input: part.input,
-                        });
-                    }
-                    continue;
-                }
-
-                if (
-                    part.type === "tool-result" &&
-                    typeof part.toolCallId === "string"
-                ) {
-                    this.emitToolResultEvents([
-                        {
-                            ...part,
-                            toolName:
-                                typeof part.toolName === "string"
-                                    ? part.toolName
-                                    : (toolNames.get(part.toolCallId) ??
-                                      "unknown"),
-                        },
-                    ]);
-                }
-            }
-        }
-    }
-
-    private emitToolResultEvents(results: Record<string, unknown>[]): void {
-        for (const result of results) {
-            if (
-                typeof result.toolCallId !== "string" ||
-                typeof result.toolName !== "string"
-            ) {
-                continue;
-            }
-            this.emitSessionEvent(AgentSessionEventType.TOOL_RESULT, {
-                toolId: result.toolCallId,
-                toolName: result.toolName,
-                output: getToolOutput(result.output),
-            });
-        }
-    }
-
     public async *streamMessage(message: string): AsyncGenerator<string> {
         const isFirstMessage = await this.startNewSession(message);
         this.emitSessionEvent(AgentSessionEventType.USER_MESSAGE, {
@@ -423,6 +349,10 @@ export class AgentSession<TModelType> {
                         outputSchema: this.agent.outputSchema,
                     },
                     messages: this.messages,
+                    onToolCall: (toolCall) =>
+                        this.toolInvoker.logToolCall(toolCall),
+                    onToolResult: (toolCall, output) =>
+                        this.toolInvoker.logToolResult(toolCall, output),
                 });
 
                 for await (const chunk of response.reply) {
@@ -442,7 +372,6 @@ export class AgentSession<TModelType> {
                 throw error;
             }
             stopReason = completed.stopReason;
-            this.emitToolEvents(completed.messages);
 
             if (stopReason === LlmTextStopReason.STOP) {
                 this.emitSessionEvent(AgentSessionEventType.ASSISTANT_MESSAGE, {
@@ -487,15 +416,4 @@ function getModelName(model: unknown): string {
         return model.modelId;
     }
     return String(model);
-}
-
-function getToolOutput(output: unknown): unknown {
-    if (
-        typeof output === "object" &&
-        output !== null &&
-        "value" in output
-    ) {
-        return output.value;
-    }
-    return output;
 }

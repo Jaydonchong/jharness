@@ -52,6 +52,8 @@ export type ILlmStreamTextInput<TModelType> = {
         outputSchema?: z.ZodType;
     };
     messages: ModelConversationMessage[];
+    onToolCall?: (toolCall: ILlmToolCall) => void;
+    onToolResult?: (toolCall: ILlmToolCall, output: unknown) => void;
 };
 
 export type ILlmStreamTextOutput = {

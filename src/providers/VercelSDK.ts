@@ -199,6 +199,8 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
     public async streamText({
         config,
         messages,
+        onToolCall,
+        onToolResult,
     }: ILlmStreamTextInput<LanguageModel>): Promise<ILlmStreamTextOutput> {
         try {
             const result = streamText({
@@ -219,18 +221,25 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
                 onEnd: () => {
                     logger.info("stream Request Successful using Vercel SDK");
                 },
-                // onToolExecutionStart: ({ toolCall }) => {
-                //     logger.info("Tool call started", {
-                //         input: toolCall.input,
-                //         name: toolCall.toolName,
-                //     });
-                // },
-                // onToolExecutionEnd: ({ toolCall }) => {
-                //     logger.info("Tool call ended", {
-                //         input: toolCall.input,
-                //         name: toolCall.toolName,
-                //     });
-                // },
+                onToolExecutionStart: ({ toolCall }) => {
+                    onToolCall?.({
+                        id: toolCall.toolCallId,
+                        name: toolCall.toolName,
+                        input: toolCall.input,
+                    });
+                },
+                onToolExecutionEnd: ({ toolCall, toolOutput }) => {
+                    if (toolOutput.type === "tool-result") {
+                        onToolResult?.(
+                            {
+                                id: toolCall.toolCallId,
+                                name: toolCall.toolName,
+                                input: toolCall.input,
+                            },
+                            toolOutput.output,
+                        );
+                    }
+                },
                 tools: Object.fromEntries(
                     config.availableTools.map((t) => [
                         `${t.name}`,
