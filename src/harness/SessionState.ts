@@ -2,6 +2,7 @@ import { DomainError, ErrorCode } from "../utils/ErrorCode";
 
 export enum SessionStatus {
     START = "START",
+    INITIALIZING = "INITIALIZING",
     WAITING = "WAITING",
     REASONING = "REASONING",
     TOOL = "TOOL",
@@ -22,10 +23,10 @@ const SESSION_STATE_TRANSITION_REGISTRY: Record<
     SessionStatus,
     SessionStatus[]
 > = {
-    [SessionStatus.START]: [
-        SessionStatus.REASONING,
-        SessionStatus.COMPACTING,
-        SessionStatus.END,
+    [SessionStatus.START]: [SessionStatus.INITIALIZING, SessionStatus.END],
+    [SessionStatus.INITIALIZING]: [
+        SessionStatus.START,
+        SessionStatus.WAITING,
     ],
     [SessionStatus.WAITING]: [
         SessionStatus.REASONING,

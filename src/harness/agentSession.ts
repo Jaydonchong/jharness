@@ -92,7 +92,6 @@ export class AgentSession<TModelType> {
      */
     private _conversationCheckpoint: string = "";
     private _sessionContext: string | null = null;
-    private isNewSession = true;
     private readonly toolInvoker: ToolInvoker;
 
     constructor(private readonly props: AgentSessionProps<TModelType>) {
@@ -142,7 +141,7 @@ export class AgentSession<TModelType> {
     }
 
     private async startNewSession(userPrompt: string): Promise<void> {
-        this.isNewSession = false;
+        this.props.sessionState.transitionTo(SessionStatus.INITIALIZING);
         try {
             this._sessionContext = await this.props.onNewSessionStart({
                 systemPrompt: this.agent.systemPrompt,
@@ -152,7 +151,7 @@ export class AgentSession<TModelType> {
                 message: this.getSessionSystemPrompt(),
             });
         } catch (error) {
-            this.isNewSession = true;
+            this.props.sessionState.transitionTo(SessionStatus.START);
             throw error;
         }
     }
@@ -179,9 +178,10 @@ export class AgentSession<TModelType> {
      * for conversation processes without affecting system prompt (i.e compaction)
      */
     public async sendMessage(message: string): Promise<ISessionResult> {
-        if (this.isNewSession) {
+        if (this.state === SessionStatus.START) {
             await this.startNewSession(message);
-        } else if (this._sessionContext === null) {
+            this.props.sessionState.transitionTo(SessionStatus.WAITING);
+        } else if (this.state === SessionStatus.INITIALIZING) {
             throw new DomainError(
                 ErrorCode.VALIDATION_ERROR,
                 "Session initialization is already in progress",
@@ -314,9 +314,10 @@ export class AgentSession<TModelType> {
     }
 
     public async *streamMessage(message: string): AsyncGenerator<string> {
-        if (this.isNewSession) {
+        if (this.state === SessionStatus.START) {
             await this.startNewSession(message);
-        } else if (this._sessionContext === null) {
+            this.props.sessionState.transitionTo(SessionStatus.WAITING);
+        } else if (this.state === SessionStatus.INITIALIZING) {
             throw new DomainError(
                 ErrorCode.VALIDATION_ERROR,
                 "Session initialization is already in progress",
