@@ -4,10 +4,8 @@ import { once } from "node:events";
 import path from "node:path";
 import { finished } from "node:stream/promises";
 import logger from "../utils/Logger";
-import type {
-    AgentSessionEventContext,
-    AgentSessionEventType,
-} from "./AgentSession";
+import { AgentSessionEventType } from "./AgentSession";
+import type { AgentSessionEventContext } from "./AgentSession";
 
 export class HarnessSessionLogger {
     private readonly queues = new Map<string, Promise<void>>();
@@ -114,15 +112,15 @@ function formatEvent(
     context: AgentSessionEventContext,
 ): string {
     switch (eventType) {
-        case "session_start":
+        case AgentSessionEventType.SESSION_START:
             return "session::start";
-        case "session_model":
+        case AgentSessionEventType.SESSION_MODEL:
             return `session::model::${context.provider ?? "unknown"}::${context.model ?? "unknown"}`;
-        case "user_message":
+        case AgentSessionEventType.USER_MESSAGE:
             return `user::message::${JSON.stringify(context)}`;
-        case "assistant_message":
+        case AgentSessionEventType.ASSISTANT_MESSAGE:
             return `assistant::message::${JSON.stringify(context.message ?? "")}`;
-        case "compaction":
+        case AgentSessionEventType.COMPACTION:
             return "session::compaction";
     }
 }

@@ -45,12 +45,13 @@ type AgentSessionProps<TModelType> = {
     ) => void;
 };
 
-export type AgentSessionEventType =
-    | "session_start"
-    | "session_model"
-    | "user_message"
-    | "assistant_message"
-    | "compaction";
+export enum AgentSessionEventType {
+    SESSION_START = "session_start",
+    SESSION_MODEL = "session_model",
+    USER_MESSAGE = "user_message",
+    ASSISTANT_MESSAGE = "assistant_message",
+    COMPACTION = "compaction",
+}
 
 export type AgentSessionEventContext = {
     provider?: string;
@@ -107,7 +108,7 @@ export class AgentSession<TModelType> {
         );
         this._conversationCheckpoint = compactedConversation.compactedMessaage;
         this.messages = compactedConversation.retainedMessages;
-        this.emitSessionEvent("compaction", {});
+        this.emitSessionEvent(AgentSessionEventType.COMPACTION, {});
     }
 
     private async startNewSession(userPrompt: string): Promise<boolean> {
@@ -118,8 +119,8 @@ export class AgentSession<TModelType> {
         }
 
         if (!this._sessionEventsStarted) {
-            this.emitSessionEvent("session_start", {});
-            this.emitSessionEvent("session_model", {
+            this.emitSessionEvent(AgentSessionEventType.SESSION_START, {});
+            this.emitSessionEvent(AgentSessionEventType.SESSION_MODEL, {
                 provider: this.llmProvider.constructor.name,
                 model: getModelName(this.props.model),
             });
@@ -166,7 +167,7 @@ export class AgentSession<TModelType> {
 
         // Prepare dynamic message
         const sanitizedMessage = await this.agent.onMessage(message);
-        this.emitSessionEvent("user_message", {
+        this.emitSessionEvent(AgentSessionEventType.USER_MESSAGE, {
             message: sanitizedMessage,
             ...(isFirstMessage
                 ? { systemPrompt: this.getSessionSystemPrompt() }
@@ -251,7 +252,7 @@ export class AgentSession<TModelType> {
         }
 
         if (response.stopReason === LlmTextStopReason.STOP) {
-            this.emitSessionEvent("assistant_message", {
+            this.emitSessionEvent(AgentSessionEventType.ASSISTANT_MESSAGE, {
                 message: response.reply,
             });
             return { reply: response.reply, output: response.output };
@@ -276,7 +277,7 @@ export class AgentSession<TModelType> {
 
     public async *streamMessage(message: string): AsyncGenerator<string> {
         const isFirstMessage = await this.startNewSession(message);
-        this.emitSessionEvent("user_message", {
+        this.emitSessionEvent(AgentSessionEventType.USER_MESSAGE, {
             message,
             ...(isFirstMessage
                 ? { systemPrompt: this.getSessionSystemPrompt() }
@@ -312,7 +313,7 @@ export class AgentSession<TModelType> {
             stopReason = completed.stopReason;
 
             if (stopReason === LlmTextStopReason.STOP) {
-                this.emitSessionEvent("assistant_message", {
+                this.emitSessionEvent(AgentSessionEventType.ASSISTANT_MESSAGE, {
                     message: assistantReply,
                 });
                 return;
