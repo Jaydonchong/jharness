@@ -92,11 +92,15 @@ export class AgentSession<TModelType> {
      */
     private _conversationCheckpoint: string = "";
     private _sessionContext: string | null = null;
-    private _sessionStartPromise: Promise<void> | null = null;
-    private _sessionEventsStarted = false;
+    private isNewSession = true;
     private readonly toolInvoker: ToolInvoker;
 
     constructor(private readonly props: AgentSessionProps<TModelType>) {
+        this.emitSessionEvent(AgentSessionEventType.SESSION_START, {});
+        this.emitSessionEvent(AgentSessionEventType.SESSION_MODEL, {
+            provider: this.llmProvider.constructor.name,
+            model: getModelName(this.props.model),
+        });
         this.toolInvoker = new ToolInvoker(
             this.agent,
             { sessionId: this.id },
@@ -138,21 +142,8 @@ export class AgentSession<TModelType> {
     }
 
     private async startNewSession(userPrompt: string): Promise<void> {
-        if (this._sessionContext !== null) return;
-        if (this._sessionStartPromise !== null) {
-            await this._sessionStartPromise;
-            return;
-        }
-
-        if (!this._sessionEventsStarted) {
-            this.emitSessionEvent(AgentSessionEventType.SESSION_START, {});
-            this.emitSessionEvent(AgentSessionEventType.SESSION_MODEL, {
-                provider: this.llmProvider.constructor.name,
-                model: getModelName(this.props.model),
-            });
-            this._sessionEventsStarted = true;
-        }
-        this._sessionStartPromise = (async () => {
+        this.isNewSession = false;
+        try {
             this._sessionContext = await this.props.onNewSessionStart({
                 systemPrompt: this.agent.systemPrompt,
                 userPrompt,
@@ -160,11 +151,8 @@ export class AgentSession<TModelType> {
             this.emitSessionEvent(AgentSessionEventType.SYSTEM_MESSAGE, {
                 message: this.getSessionSystemPrompt(),
             });
-        })();
-        try {
-            await this._sessionStartPromise;
         } catch (error) {
-            this._sessionStartPromise = null;
+            this.isNewSession = true;
             throw error;
         }
     }
@@ -191,7 +179,14 @@ export class AgentSession<TModelType> {
      * for conversation processes without affecting system prompt (i.e compaction)
      */
     public async sendMessage(message: string): Promise<ISessionResult> {
-        await this.startNewSession(message);
+        if (this.isNewSession) {
+            await this.startNewSession(message);
+        } else if (this._sessionContext === null) {
+            throw new DomainError(
+                ErrorCode.VALIDATION_ERROR,
+                "Session initialization is already in progress",
+            );
+        }
         // Prepare dynamic message
         const sanitizedMessage = await this.agent.onMessage(message);
         this.emitSessionEvent(AgentSessionEventType.USER_MESSAGE, {
@@ -319,7 +314,14 @@ export class AgentSession<TModelType> {
     }
 
     public async *streamMessage(message: string): AsyncGenerator<string> {
-        await this.startNewSession(message);
+        if (this.isNewSession) {
+            await this.startNewSession(message);
+        } else if (this._sessionContext === null) {
+            throw new DomainError(
+                ErrorCode.VALIDATION_ERROR,
+                "Session initialization is already in progress",
+            );
+        }
         this.emitSessionEvent(AgentSessionEventType.USER_MESSAGE, {
             message,
         });
