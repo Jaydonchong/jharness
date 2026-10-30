@@ -8,12 +8,13 @@ import { AgentSession } from "./AgentSession";
 
 /**
  * TODO
- * 1. [x] Manual Tool Loop
- * 2. [x] Compaction
- * 3. Memory
- * 4. RAG
- * 5. Evals
- * 6. Hooks + Permissions
+ * - [x] Manual Tool Loop
+ * - [x] Compaction
+ * - [] Memory
+ * - [] RAG
+ * - [] Evals
+ * - [] Hooks + Permissions
+ * - [] Permission Gates
  */
 
 export type IHarnessDeps = {

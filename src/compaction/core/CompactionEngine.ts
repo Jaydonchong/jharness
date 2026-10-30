@@ -21,6 +21,10 @@ export class CompactionEngine {
         };
     }
 
+    public async compactMemory(input:CompactionInput): Promise<string>{
+        throw new Error('Not Implemented')
+    }
+
     private _deserializeCompactionResult(output: CompactionOutput): string {
         return output.compactedResult
             .map((m) => m.content as string)
