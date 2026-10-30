@@ -14,6 +14,7 @@ export class HarnessSessionLogger {
     private readonly streams = new Map<string, WriteStream>();
     private readonly streamErrors = new Map<string, Error>();
     private readonly directory: string;
+    private readonly directorySetup: Promise<Error | null>;
     private isClosed = false;
 
     constructor(directory = process.env.SESSION_LOG_FS_PATH) {
@@ -21,11 +22,23 @@ export class HarnessSessionLogger {
             throw new Error("SESSION_LOG_FS_PATH is required");
         }
         this.directory = directory;
+        this.directorySetup = mkdir(this.directory, { recursive: true })
+            .then(() => null)
+            .catch((error: unknown) => {
+                const setupError =
+                    error instanceof Error ? error : new Error(String(error));
+                logger.error("Unable to create session log directory", {
+                    directory: this.directory,
+                    error: setupError,
+                });
+                return setupError;
+            });
     }
 
     public createSession(sessionId: string): void {
         this.enqueue(sessionId, async () => {
-            await mkdir(this.directory, { recursive: true });
+            const setupError = await this.directorySetup;
+            if (setupError) throw setupError;
             const stream = createWriteStream(
                 path.join(this.directory, `${sessionId}.txt`),
                 { flags: "wx", encoding: "utf8" },
