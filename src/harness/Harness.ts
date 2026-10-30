@@ -7,6 +7,7 @@ import logger from "../utils/Logger";
 import Uuidv4Generator from "../utils/Uuidv4Generator";
 import { AgentSession } from "./AgentSession";
 import { HarnessSessionLogger } from "./HarnessSessionLogger";
+import { SessionState } from "./SessionState";
 
 /**
  * TODO
@@ -73,6 +74,7 @@ export class Harness {
     }): AgentSession<TModelType> {
         const sessionId = Uuidv4Generator.generateUuid();
         this.sessionLogger.createSession(sessionId);
+        const sessionState = new SessionState(() => {});
         const session = new AgentSession({
             id: sessionId,
             llmProvider: args.llmProvider,
@@ -83,6 +85,7 @@ export class Harness {
                 this.deps.contextAssembler.prepareSessionContext(input),
             onSessionEvent: (eventType, context) =>
                 this.sessionLogger.onSessionEvent(sessionId, eventType, context),
+            sessionState,
         });
         this.agentSessions.push(session);
         this.agentSessionRegistry.set(session.id, session);

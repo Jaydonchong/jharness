@@ -3,6 +3,7 @@ import { ModelConversationMessage } from "../agents/Interfaces";
 import { ToolInvoker } from "../tools/core/ToolInvoker";
 import logger from "../utils/Logger";
 import { DomainError, ErrorCode } from "../utils/ErrorCode";
+import { SessionState, SessionStatus } from "./SessionState";
 import {
     ILlmGenerateTextOutput,
     ILlmProvider,
@@ -43,6 +44,7 @@ type AgentSessionProps<TModelType> = {
         eventType: AgentSessionEventType,
         context: AgentSessionEventContext,
     ) => void;
+    sessionState: SessionState;
 };
 
 export enum AgentSessionEventType {
@@ -108,7 +110,12 @@ export class AgentSession<TModelType> {
         return this.props.agent;
     }
 
+    public get state(): SessionStatus {
+        return this.props.sessionState.currentState;
+    }
+
     public async compactConversation() {
+        this.props.sessionState.transitionTo(SessionStatus.REASONING);
         const compactedConversation = await this.props.onCompact(
             this.messages,
             this._conversationCheckpoint,
@@ -117,6 +124,7 @@ export class AgentSession<TModelType> {
         this._conversationCheckpoint = compactedConversation.compactedMessaage;
         this.messages = compactedConversation.retainedMessages;
         this.emitSessionEvent(AgentSessionEventType.COMPACTION, {});
+        this.props.sessionState.transitionTo(SessionStatus.WAITING);
     }
 
     private async startNewSession(userPrompt: string): Promise<boolean> {
@@ -172,7 +180,6 @@ export class AgentSession<TModelType> {
      */
     public async sendMessage(message: string): Promise<ISessionResult> {
         const isFirstMessage = await this.startNewSession(message);
-
         // Prepare dynamic message
         const sanitizedMessage = await this.agent.onMessage(message);
         this.emitSessionEvent(AgentSessionEventType.USER_MESSAGE, {
@@ -191,6 +198,9 @@ export class AgentSession<TModelType> {
             let retries = 0;
 
             while (retries < MAX_RETRY_PER_STEP) {
+                this.props.sessionState.transitionTo(
+                    SessionStatus.REASONING,
+                );
                 try {
                     response = await this.llmProvider.generateText({
                         config: {
@@ -245,24 +255,25 @@ export class AgentSession<TModelType> {
                     "Tool call stop reason without any tool call",
                 );
             }
-            const toolResultContent: Record<string, unknown>[] = [];
+            this.props.sessionState.transitionTo(SessionStatus.TOOL);
             for (const toolCall of response.toolCalls) {
                 this.emitSessionEvent(AgentSessionEventType.TOOL_CALL, {
                     toolId: toolCall.id,
                     toolName: toolCall.name,
                     input: toolCall.input,
                 });
-                const toolResults = await this.toolInvoker.invoke([toolCall]);
-                if (Array.isArray(toolResults.content)) {
-                    const results = toolResults.content.filter(
-                        (result): result is Record<string, unknown> =>
-                            typeof result === "object" && result !== null,
-                    );
-                    this.emitToolResultEvents(results);
-                    toolResultContent.push(...results);
-                }
             }
-            this.messages.push({ role: "tool", content: toolResultContent });
+            const toolCallResults = await this.toolInvoker.invoke(
+                response.toolCalls,
+            );
+            if (Array.isArray(toolCallResults.content)) {
+                const results = toolCallResults.content.filter(
+                    (result): result is Record<string, unknown> =>
+                        typeof result === "object" && result !== null,
+                );
+                this.emitToolResultEvents(results);
+            }
+            this.messages.push(toolCallResults);
         }
 
         if (step >= MAX_AGENT_LOOP_STEP) {
@@ -285,6 +296,7 @@ export class AgentSession<TModelType> {
             this.emitSessionEvent(AgentSessionEventType.ASSISTANT_MESSAGE, {
                 message: response.reply,
             });
+            this.props.sessionState.transitionTo(SessionStatus.WAITING);
             return { reply: response.reply, output: response.output };
         }
 
@@ -401,6 +413,7 @@ export class AgentSession<TModelType> {
             iteration < MAX_ITERATION
         ) {
             let response;
+            this.props.sessionState.transitionTo(SessionStatus.REASONING);
             try {
                 response = await this.llmProvider.streamText({
                     config: {
@@ -435,6 +448,7 @@ export class AgentSession<TModelType> {
                 this.emitSessionEvent(AgentSessionEventType.ASSISTANT_MESSAGE, {
                     message: assistantReply,
                 });
+                this.props.sessionState.transitionTo(SessionStatus.WAITING);
                 return;
             }
 
