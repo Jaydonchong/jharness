@@ -52,6 +52,7 @@ type AgentSessionProps<TModelType> = {
 export enum AgentSessionEventType {
     SESSION_START = "session_start",
     SESSION_MODEL = "session_model",
+    SYSTEM_MESSAGE = "system_message",
     USER_MESSAGE = "user_message",
     ASSISTANT_MESSAGE = "assistant_message",
     COMPACTION = "compaction",
@@ -65,7 +66,6 @@ export type AgentSessionEventContext = {
     provider?: string;
     model?: string;
     message?: string;
-    systemPrompt?: string;
     toolId?: string;
     toolName?: string;
     input?: unknown;
@@ -137,11 +137,11 @@ export class AgentSession<TModelType> {
         }
     }
 
-    private async startNewSession(userPrompt: string): Promise<boolean> {
-        if (this._sessionContext !== null) return false;
+    private async startNewSession(userPrompt: string): Promise<void> {
+        if (this._sessionContext !== null) return;
         if (this._sessionStartPromise !== null) {
             await this._sessionStartPromise;
-            return false;
+            return;
         }
 
         if (!this._sessionEventsStarted) {
@@ -157,6 +157,9 @@ export class AgentSession<TModelType> {
                 systemPrompt: this.agent.systemPrompt,
                 userPrompt,
             });
+            this.emitSessionEvent(AgentSessionEventType.SYSTEM_MESSAGE, {
+                message: this.getSessionSystemPrompt(),
+            });
         })();
         try {
             await this._sessionStartPromise;
@@ -164,7 +167,6 @@ export class AgentSession<TModelType> {
             this._sessionStartPromise = null;
             throw error;
         }
-        return true;
     }
 
     private emitSessionEvent(
@@ -189,14 +191,11 @@ export class AgentSession<TModelType> {
      * for conversation processes without affecting system prompt (i.e compaction)
      */
     public async sendMessage(message: string): Promise<ISessionResult> {
-        const isFirstMessage = await this.startNewSession(message);
+        await this.startNewSession(message);
         // Prepare dynamic message
         const sanitizedMessage = await this.agent.onMessage(message);
         this.emitSessionEvent(AgentSessionEventType.USER_MESSAGE, {
-            message: sanitizedMessage,
-            ...(isFirstMessage
-                ? { systemPrompt: this.getSessionSystemPrompt() }
-                : {}),
+            message,
         });
         this.messages.push({ role: "user", content: sanitizedMessage });
 
@@ -320,12 +319,9 @@ export class AgentSession<TModelType> {
     }
 
     public async *streamMessage(message: string): AsyncGenerator<string> {
-        const isFirstMessage = await this.startNewSession(message);
+        await this.startNewSession(message);
         this.emitSessionEvent(AgentSessionEventType.USER_MESSAGE, {
             message,
-            ...(isFirstMessage
-                ? { systemPrompt: this.getSessionSystemPrompt() }
-                : {}),
         });
         this.messages.push({ role: "user", content: message });
 

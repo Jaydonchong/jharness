@@ -138,10 +138,12 @@ function formatEvent(
             return "session::start";
         case AgentSessionEventType.SESSION_MODEL:
             return `session::model::${context.provider ?? "unknown"}::${context.model ?? "unknown"}`;
+        case AgentSessionEventType.SYSTEM_MESSAGE:
+            return `message::system::${stringify(context.message ?? "")}`;
         case AgentSessionEventType.USER_MESSAGE:
-            return `user::message::${JSON.stringify(context)}`;
+            return `message::user::${stringify(context.message ?? "")}`;
         case AgentSessionEventType.ASSISTANT_MESSAGE:
-            return `assistant::message::${JSON.stringify(context.message ?? "")}`;
+            return `message::assistant::${stringify(context.message ?? "")}`;
         case AgentSessionEventType.COMPACTION:
             return "session::compaction";
         case AgentSessionEventType.SESSION_ERROR:
