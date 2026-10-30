@@ -16,13 +16,11 @@ import { ContextAssembler } from "./memory/core/ContextAssembler";
 import { LocalFileMemoryStore } from "./memory/memoryStore/LocalFileMemoryStore/LocalFileMemoryStore";
 import { RememberTool } from "./tools/RememberTool";
 import { RecallTool } from "./tools/RecallTool";
-import {
-    ReadFileTool,
-    ShellCommandTool,
-    WriteFileTool,
-    WalkDirectoryTool,
-    WorkspaceTools,
-} from "./tools/WorkspaceTools";
+import { ReadFileTool } from "./tools/ReadFileTool";
+import { ShellCommandTool } from "./tools/ShellCommandTool";
+import { WalkDirectoryTool } from "./tools/WalkDirectoryTool";
+import { WriteFileTool } from "./tools/WriteFileTool";
+import { WorkspaceTools } from "./tools/WorkspaceTools";
 import { VERCEL_AI_MODELS, VercelSDK } from "./providers/VercelSDK";
 
 const PROMPT = MOCK_NEWS;
