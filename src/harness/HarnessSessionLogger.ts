@@ -122,5 +122,21 @@ function formatEvent(
             return `assistant::message::${JSON.stringify(context.message ?? "")}`;
         case AgentSessionEventType.COMPACTION:
             return "session::compaction";
+        case AgentSessionEventType.SESSION_ERROR:
+            return "session::error";
+        case AgentSessionEventType.SESSION_TIMEOUT:
+            return "session::timeout";
+        case AgentSessionEventType.TOOL_CALL:
+            return `tools::call::${context.toolId ?? "unknown"}::${context.toolName ?? "unknown"}::${stringify(context.input)}`;
+        case AgentSessionEventType.TOOL_RESULT:
+            return `tools::result::${context.toolId ?? "unknown"}::${context.toolName ?? "unknown"}::${stringify(context.output)}`;
+    }
+}
+
+function stringify(value: unknown): string {
+    try {
+        return JSON.stringify(value) ?? String(value);
+    } catch {
+        return String(value);
     }
 }
