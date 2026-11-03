@@ -9,19 +9,7 @@ import {
 	RelationId,
 } from 'typeorm';
 import { RAGDocumentEntity } from './RAGDocumentEntity.entity';
-
-export type RAGChunkLocation = {
-	startOffset: number;
-	endOffset: number;
-	page?: number;
-	sectionPath?: string[];
-};
-
-export type RAGChunkingDetails = {
-	strategy: string;
-	version: string;
-	configHash?: string;
-};
+import type { RAGChunkLocation, RAGChunkingMetadata } from '../domain/RAGChunk';
 
 @Entity({ name: 'rag_chunks' })
 @Index('IDX_rag_chunks_document_id', ['document'])
@@ -49,7 +37,7 @@ export class RAGChunkEntity {
 	documentChunkMetadata!: Record<string, unknown>;
 
 	@Column({ name: 'chunking_metadata', type: 'jsonb' })
-	chunkingMetadata!: RAGChunkingDetails;
+	chunkingMetadata!: RAGChunkingMetadata;
 
 	@CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
 	createdAt!: Date;
