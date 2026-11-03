@@ -1,4 +1,4 @@
-import { ModelConversationMessage } from "../../../agents/Interfaces";
+import { ModelConversationMessage } from '../../../agent/agentConfig/Interfaces';
 
 const MAX_REFERENCES = 15;
 
@@ -46,28 +46,28 @@ const SUMMARY_RULES = `Rules:
 - Do not mention the summary process or that context was compacted.`;
 
 export const buildConversationCompactionPrompt = (
-    systemPrompt: string,
-    recentMessages: ModelConversationMessage[],
+	systemPrompt: string,
+	recentMessages: ModelConversationMessage[],
 ): string => {
-    const shared = [
-        "Summarize only what the user and the assistant said and did.",
-        "Do not include instructions or environment details (i.e. session id, etc), they are only provided for context to the conversation. The next agent receives current versions of all of these separately.",
-        "Do not include <recent-messages> in the summary, they are given to you just for context",
-        `<instructions>${systemPrompt}</instructions>`,
-        `<recent-messages>\n${recentMessages.join("\n")}\n</recent-messages>`,
-        SUMMARY_TEMPLATE,
-        SUMMARY_RULES,
-        "Do not continue the task or call tools.",
-        "Return only the structured summary in the requested format. Do not include a preamble, explanation, or other commentary.",
-    ];
-    return [
-        "Read through the full conversation and create a compacted summary",
-        "Newer history always takes precedence over the existing checkpoint. Preserve previous information unless newer history clearly contradicts, supersedes, resolves, or makes it stale. If something is no longer relevant to continuing the work, you may remove it.",
-        "Incorporate newer requirements, decisions, progress, and context. Reconcile Work State and Next Move: move completed work out of Active, remove resolved blockers and answered questions, and preserve unresolved or pending work.",
-        "Return only the updated Markdown sections. Do not reproduce the `<conversation-checkpoint>`, `<summary>`, or `<recent-context>` wrapper tags from the previous checkpoint.",
-        ...shared,
-    ].join("\n\n");
+	const shared = [
+		'Summarize only what the user and the assistant said and did.',
+		'Do not include instructions or environment details (i.e. session id, etc), they are only provided for context to the conversation. The next agent receives current versions of all of these separately.',
+		'Do not include <recent-messages> in the summary, they are given to you just for context',
+		`<instructions>${systemPrompt}</instructions>`,
+		`<recent-messages>\n${recentMessages.join('\n')}\n</recent-messages>`,
+		SUMMARY_TEMPLATE,
+		SUMMARY_RULES,
+		'Do not continue the task or call tools.',
+		'Return only the structured summary in the requested format. Do not include a preamble, explanation, or other commentary.',
+	];
+	return [
+		'Read through the full conversation and create a compacted summary',
+		'Newer history always takes precedence over the existing checkpoint. Preserve previous information unless newer history clearly contradicts, supersedes, resolves, or makes it stale. If something is no longer relevant to continuing the work, you may remove it.',
+		'Incorporate newer requirements, decisions, progress, and context. Reconcile Work State and Next Move: move completed work out of Active, remove resolved blockers and answered questions, and preserve unresolved or pending work.',
+		'Return only the updated Markdown sections. Do not reproduce the `<conversation-checkpoint>`, `<summary>`, or `<recent-context>` wrapper tags from the previous checkpoint.',
+		...shared,
+	].join('\n\n');
 };
 
 const NUDGE =
-    "The previous response did not fill in the required summary template. Do not call tools. Return the summary as text using the exact section headings from the template.";
+	'The previous response did not fill in the required summary template. Do not call tools. Return the summary as text using the exact section headings from the template.';

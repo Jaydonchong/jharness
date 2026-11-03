@@ -1,5 +1,5 @@
-import type { AbstractAgent } from '../agents/AbstractAgent';
-import type { ModelConversationMessage } from '../agents/Interfaces';
+import type { AbstractAgentConfig } from '../agentConfig/AbstractAgentConfig';
+import type { ModelConversationMessage } from '../agentConfig/Interfaces';
 
 export type AgentConversationCompaction = {
 	compactedMessaage: string;
@@ -9,7 +9,7 @@ export type AgentConversationCompaction = {
 export type AgentConversationCompactor = (
 	messages: ModelConversationMessage[],
 	conversationCheckpoint: string,
-	agent: AbstractAgent,
+	agent: AbstractAgentConfig,
 ) => Promise<AgentConversationCompaction>;
 
 export class AgentConversation {
@@ -41,7 +41,10 @@ export class AgentConversation {
 		return [systemPrompt, this.conversationCheckpoint].filter(Boolean).join('\n');
 	}
 
-	public async compact(compact: AgentConversationCompactor, agent: AbstractAgent): Promise<void> {
+	public async compact(
+		compact: AgentConversationCompactor,
+		agent: AbstractAgentConfig,
+	): Promise<void> {
 		const result = await compact(this.conversationMessages, this.conversationCheckpoint, agent);
 		this.conversationCheckpoint = result.compactedMessaage;
 		this.conversationMessages = result.retainedMessages;

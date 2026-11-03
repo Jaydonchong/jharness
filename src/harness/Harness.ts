@@ -1,5 +1,5 @@
-import { AbstractAgent } from '../agents/AbstractAgent';
-import { ModelConversationMessage } from '../agents/Interfaces';
+import { AbstractAgentConfig } from '../agent/agentConfig/AbstractAgentConfig';
+import { ModelConversationMessage } from '../agent/agentConfig/Interfaces';
 import { CompactionEngine } from '../compaction/core/CompactionEngine';
 import { ContextAssembler } from '../memory/core/ContextAssembler';
 import { ILlmProvider } from '../providers/Interfaces';
@@ -9,17 +9,6 @@ import Uuidv4Generator from '../utils/Uuidv4Generator';
 import { AgentSession } from './AgentSession';
 import { AgentSessionLogger } from './AgentSessionLogger';
 import { SessionState } from './SessionState';
-
-/**
- * TODO
- * - [x] Manual Tool Loop
- * - [x] Compaction
- * - [] Memory
- * - [] RAG
- * - [] Evals
- * - [] Hooks + Permissions
- * - [] Permission Gates
- */
 
 export type IHarnessDeps = {
 	compactionEngine: CompactionEngine;
@@ -46,7 +35,7 @@ export class Harness {
 	public async doCompaction(
 		messages: ModelConversationMessage[],
 		_conversationCheckpoint: string,
-		agent: AbstractAgent,
+		agent: AbstractAgentConfig,
 	): Promise<{
 		compactedMessaage: string;
 		retainedMessages: ModelConversationMessage[];
@@ -69,7 +58,7 @@ export class Harness {
 
 	public newSession<TModelType>(args: {
 		llmProvider: ILlmProvider<TModelType>;
-		agent: AbstractAgent;
+		agent: AbstractAgentConfig;
 		model: TModelType;
 	}): AgentSession<TModelType> {
 		const sessionId = Uuidv4Generator.generateUuid();

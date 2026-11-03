@@ -1,12 +1,12 @@
-import { ToolInvoker } from '../tools/core/ToolInvoker';
-import { DomainError, ErrorCode } from '../utils/ErrorCode';
+import { ToolInvoker } from '../../tools/core/ToolInvoker';
+import { DomainError, ErrorCode } from '../../utils/ErrorCode';
 import {
 	ILlmGenerateTextInput,
 	ILlmGenerateTextOutput,
 	LlmTextStopReason,
-} from '../providers/Interfaces';
+} from '../../providers/Interfaces';
 import { AgentConversation } from './AgentConversation';
-import type { InterruptionDetails } from './SessionState';
+import type { InterruptionDetails } from '../../harness/SessionState';
 
 export interface ISessionResult {
 	reply: string;

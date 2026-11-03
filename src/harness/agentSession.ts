@@ -1,14 +1,14 @@
-import { AbstractAgent } from '../agents/AbstractAgent';
-import { ModelConversationMessage } from '../agents/Interfaces';
+import { AbstractAgentConfig } from '../agent/agentConfig/AbstractAgentConfig';
+import { ModelConversationMessage } from '../agent/agentConfig/Interfaces';
 import { ToolInvoker } from '../tools/core/ToolInvoker';
 import type { IToolInvocationLogger } from '../tools/core/ToolInvoker';
 import logger from '../utils/Logger';
 import { DomainError, ErrorCode } from '../utils/ErrorCode';
 import { SessionState, SessionStatus, type InterruptionDetails } from './SessionState';
-import { AgentConversation } from './AgentConversation';
-import type { AgentConversationCompactor } from './AgentConversation';
-import { AgentLoop } from './AgentLoop';
-import type { AgentTurnStrategy, ISessionResult } from './AgentLoop';
+import { AgentConversation } from '../agent/core/AgentConversation';
+import type { AgentConversationCompactor } from '../agent/core/AgentConversation';
+import { AgentLoop } from '../agent/core/AgentLoop';
+import type { AgentTurnStrategy, ISessionResult } from '../agent/core/AgentLoop';
 import { ILlmProvider } from '../providers/Interfaces';
 
 export type TSessionMessageContent =
@@ -22,7 +22,7 @@ export type TSessionMessageContent =
 type AgentSessionProps<TModelType> = {
 	id: string;
 	llmProvider: ILlmProvider<unknown>;
-	agent: AbstractAgent;
+	agent: AbstractAgentConfig;
 	model: TModelType;
 	compactionStrategy: AgentConversationCompactor;
 	onNewSessionStart: (input: { systemPrompt: string; userPrompt: string }) => Promise<string>;
@@ -54,7 +54,7 @@ export type AgentSessionEventContext = {
 	output?: unknown;
 };
 
-export type { ISessionResult } from './AgentLoop';
+export type { ISessionResult } from '../agent/core/AgentLoop';
 
 export type { InterruptionDetails as InterruptedStreamAttempt } from './SessionState';
 

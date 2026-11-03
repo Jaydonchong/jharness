@@ -1,4 +1,4 @@
-import { AGcalSummarizer } from '../agents/GcalSummarizer';
+import { AGcalSummarizer } from '../agent/agentConfig/GcalSummarizer';
 import { AgentSession } from '../harness/AgentSession';
 import { Harness } from '../harness/Harness';
 import { DiscordBotClient } from '../network/discord/DiscordBotClient';

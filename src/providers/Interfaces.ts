@@ -1,5 +1,5 @@
 import z from 'zod';
-import { ModelConversationMessage } from '../agents/Interfaces';
+import { ModelConversationMessage } from '../agent/agentConfig/Interfaces';
 import { AgentTool } from '../tools/core/AgentTool';
 
 export enum LlmTextStopReason {

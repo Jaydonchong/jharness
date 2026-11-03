@@ -1,27 +1,32 @@
 - [x] Vercel SDK class
 - [x] Generate Text
 - [x] Multi step conversation
+- [x] Harness class
 - [x] Tool Calling
     - [x] Function Tool
     - [] Dynamic Tool
     - [] Provider Defined Tool
-- [] State Preservationo
-- [] RAG
-- [] Multimedia Support
-- [x] Session ID tracking
-- [x] Harness class
-- [] Structured Outputs
-- [] Error Handling : https://ai-sdk.dev/docs/reference/ai-sdk-errors
-- [] Output reasoning
-- [x] Stream Text
-- [] Skill Upload
-
-- [x] Environment variable - Solves the problem of models assuming current date as 2025 based on the data it is trained on
-- [] Compaction
-    - [] Offload huge tool results
-    - [] Verify + nudge
-    - [] Eval for ratio
-
-# Optional
-
-- [] `stopWhen` - Automatic loop in SDK
+    - [] Skill Upload
+- [x] State Preservatioon
+    - [x] Session ID tracking
+    - [x] Session Logs
+- [] Inputs
+    - [x] Environment variable - Solves the problem of models assuming current date as 2025 based on the data it is trained on
+    - [x] Compaction
+        - [x] Offload huge tool results
+        - [] Verify + nudge
+        - [] Eval for ratio
+- [] Outputs
+    - [] Structured Outputs
+    - [] Error Handling : https://ai-sdk.dev/docs/reference/ai-sdk-errors
+    - [] Output reasoning
+    - [x] Stream Text
+- [] Context
+    - [] Memory
+    - [] RAG
+- [] Observability
+    - [] Evals
+- [] Security
+    - [] Permission Gates
+- [] Additional
+    - [] Multimedia Support

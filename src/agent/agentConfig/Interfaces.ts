@@ -1,12 +1,10 @@
 export interface IConversationalAgent {
-    sendMessages(
-        messages: ModelConversationMessage[],
-    ): Promise<ModelConversationMessage[]>;
+	sendMessages(messages: ModelConversationMessage[]): Promise<ModelConversationMessage[]>;
 }
 
 export type ModelConversationMessage = {
-    role: string;
-    content: string | Record<string, unknown>[];
+	role: string;
+	content: string | Record<string, unknown>[];
 };
 
 // From Vercel's API DOC

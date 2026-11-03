@@ -34,7 +34,7 @@ import {
 	ILlmStreamTextOutput,
 	LlmTextStopReason,
 } from './Interfaces';
-import { ModelConversationMessage } from '../agents/Interfaces';
+import { ModelConversationMessage } from '../agent/agentConfig/Interfaces';
 import { AgentTool } from '../tools/core/AgentTool';
 import { DomainError, ErrorCode } from '../utils/ErrorCode';
 import logger from '../utils/Logger';
