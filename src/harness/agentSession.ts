@@ -1,411 +1,263 @@
-import { AbstractAgent } from "../agents/AbstractAgent";
-import { ModelConversationMessage } from "../agents/Interfaces";
-import { ToolInvoker } from "../tools/core/ToolInvoker";
-import type { IToolInvocationLogger } from "../tools/core/ToolInvoker";
-import logger from "../utils/Logger";
-import { DomainError, ErrorCode } from "../utils/ErrorCode";
-import { SessionState, SessionStatus } from "./SessionState";
-import {
-    ILlmGenerateTextOutput,
-    ILlmProvider,
-    LlmTextStopReason,
-} from "../providers/Interfaces";
+import { AbstractAgent } from '../agents/AbstractAgent';
+import { ModelConversationMessage } from '../agents/Interfaces';
+import { ToolInvoker } from '../tools/core/ToolInvoker';
+import type { IToolInvocationLogger } from '../tools/core/ToolInvoker';
+import logger from '../utils/Logger';
+import { DomainError, ErrorCode } from '../utils/ErrorCode';
+import { SessionState, SessionStatus, type InterruptionDetails } from './SessionState';
+import { AgentConversation } from './AgentConversation';
+import type { AgentConversationCompactor } from './AgentConversation';
+import { AgentLoop } from './AgentLoop';
+import type { AgentTurnStrategy, ISessionResult } from './AgentLoop';
+import { ILlmProvider } from '../providers/Interfaces';
 
 export type TSessionMessageContent =
-    | string
-    // This is adapter from Vercel's ContentPart Type
-    | {
-          type: "text";
-          text: string;
-      }[];
+	| string
+	// This is adapter from Vercel's ContentPart Type
+	| {
+			type: 'text';
+			text: string;
+	  }[];
 
 type AgentSessionProps<TModelType> = {
-    id: string;
-    llmProvider: ILlmProvider<unknown>;
-    agent: AbstractAgent;
-    model: TModelType;
-    /**
-     *
-     * Separate compaction result here because compacted messages are injected
-     * into systemp prompt post compaction, but should not be preserved in future compaction
-     */
-    onCompact: (
-        messages: ModelConversationMessage[],
-        _conversationCheckpoint: string,
-        agent: AbstractAgent,
-    ) => Promise<{
-        compactedMessaage: string;
-        retainedMessages: ModelConversationMessage[];
-    }>;
-    onNewSessionStart: (input: {
-        systemPrompt: string;
-        userPrompt: string;
-    }) => Promise<string>;
-    onSessionEvent: (
-        eventType: AgentSessionEventType,
-        context: AgentSessionEventContext,
-    ) => void;
-    sessionLogger: IToolInvocationLogger;
-    sessionState: SessionState;
+	id: string;
+	llmProvider: ILlmProvider<unknown>;
+	agent: AbstractAgent;
+	model: TModelType;
+	compactionStrategy: AgentConversationCompactor;
+	onNewSessionStart: (input: { systemPrompt: string; userPrompt: string }) => Promise<string>;
+	onSessionEvent: (eventType: AgentSessionEventType, context: AgentSessionEventContext) => void;
+	sessionLogger: IToolInvocationLogger;
+	sessionState: SessionState;
 };
 
 export enum AgentSessionEventType {
-    SESSION_START = "session_start",
-    SESSION_MODEL = "session_model",
-    SYSTEM_MESSAGE = "system_message",
-    USER_MESSAGE = "user_message",
-    ASSISTANT_MESSAGE = "assistant_message",
-    COMPACTION = "compaction",
-    SESSION_ERROR = "session_error",
-    SESSION_TIMEOUT = "session_timeout",
-    TOOL_CALL = "tool_call",
-    TOOL_RESULT = "tool_result",
+	SESSION_START = 'session_start',
+	SESSION_MODEL = 'session_model',
+	SYSTEM_MESSAGE = 'system_message',
+	USER_MESSAGE = 'user_message',
+	ASSISTANT_MESSAGE = 'assistant_message',
+	COMPACTION = 'compaction',
+	SESSION_ERROR = 'session_error',
+	SESSION_TIMEOUT = 'session_timeout',
+	TOOL_CALL = 'tool_call',
+	TOOL_RESULT = 'tool_result',
 }
 
 export type AgentSessionEventContext = {
-    provider?: string;
-    model?: string;
-    message?: string;
-    toolId?: string;
-    toolName?: string;
-    input?: unknown;
-    output?: unknown;
+	provider?: string;
+	model?: string;
+	message?: string;
+	toolId?: string;
+	toolName?: string;
+	input?: unknown;
+	output?: unknown;
 };
 
-export interface ISessionResult {
-    reply: string;
-    output?: unknown;
-}
+export type { ISessionResult } from './AgentLoop';
 
-/**
- * 1. Track Message History
- *
- */
-
-const MAX_AGENT_LOOP_STEP = 10;
-const MAX_RETRY_PER_STEP = 3; // Note: retries do not count into agent loop step.
+export type { InterruptionDetails as InterruptedStreamAttempt } from './SessionState';
 
 export class AgentSession<TModelType> {
-    public messages: ModelConversationMessage[] = [];
-    /**
-     * Compaction result
-     */
-    private _conversationCheckpoint: string = "";
-    private _sessionContext: string | null = null;
-    private readonly toolInvoker: ToolInvoker;
+	private readonly conversation = new AgentConversation();
+	private _sessionContext: string | null = null;
+	private readonly generateStrategy: AgentTurnStrategy<TModelType, never>;
+	private readonly streamStrategy: AgentTurnStrategy<TModelType, string>;
+	private readonly toolInvoker: ToolInvoker;
+	private readonly agentLoop: AgentLoop<TModelType>;
 
-    constructor(private readonly props: AgentSessionProps<TModelType>) {
-        this.emitSessionEvent(AgentSessionEventType.SESSION_START, {});
-        this.emitSessionEvent(AgentSessionEventType.SESSION_MODEL, {
-            provider: this.llmProvider.constructor.name,
-            model: getModelName(this.props.model),
-        });
-        this.toolInvoker = new ToolInvoker(
-            this.agent,
-            { sessionId: this.id },
-            this.props.sessionLogger,
-        );
-    }
+	constructor(private readonly props: AgentSessionProps<TModelType>) {
+		const llmProvider = this.llmProvider;
+		this.generateStrategy = {
+			async *runStep(input) {
+				return await llmProvider.generateText(input);
+			},
+		};
+		this.streamStrategy = {
+			async *runStep(input) {
+				const stream = await llmProvider.streamText(input);
+				let reply = '';
+				for await (const chunk of stream.reply) {
+					reply += chunk;
+					yield chunk;
+				}
 
-    public get id() {
-        return this.props.id;
-    }
+				const completed = await stream.completed;
+				return {
+					...completed,
+					reply,
+				};
+			},
+		};
+		this.emitSessionEvent(AgentSessionEventType.SESSION_START, {});
+		this.emitSessionEvent(AgentSessionEventType.SESSION_MODEL, {
+			provider: this.llmProvider.constructor.name,
+			model: getModelName(this.props.model),
+		});
+		this.toolInvoker = new ToolInvoker(
+			this.agent,
+			{ sessionId: this.id },
+			this.props.sessionLogger,
+		);
+		this.agentLoop = new AgentLoop(
+			this.conversation,
+			this.toolInvoker,
+			() => this.getProviderConfig(),
+			{
+				onProviderCall: () => this.props.sessionState.transitionTo(SessionStatus.REASONING),
+				onToolCall: () => this.props.sessionState.transitionTo(SessionStatus.TOOL),
+				onTurnComplete: () => this.props.sessionState.transitionTo(SessionStatus.WAITING),
+				onTurnInterrupted: (details) => this.props.sessionState.interrupt(details),
+				onSessionError: (message) =>
+					this.emitSessionEvent(AgentSessionEventType.SESSION_ERROR, { message }),
+				onSessionTimeout: (message) =>
+					this.emitSessionEvent(AgentSessionEventType.SESSION_TIMEOUT, { message }),
+				onAssistantMessage: (assistantMessage) =>
+					this.emitSessionEvent(AgentSessionEventType.ASSISTANT_MESSAGE, {
+						message: assistantMessage,
+					}),
+				onWarning: (message, context) => logger.warn(message, context),
+				onError: (message) => logger.error(message),
+			},
+		);
+	}
 
-    public get llmProvider() {
-        return this.props.llmProvider;
-    }
+	public get messages(): ModelConversationMessage[] {
+		return this.conversation.messages;
+	}
 
-    public get agent() {
-        return this.props.agent;
-    }
+	public set messages(messages: ModelConversationMessage[]) {
+		this.conversation.replaceMessages(messages);
+	}
 
-    public get state(): SessionStatus {
-        return this.props.sessionState.currentState;
-    }
+	public get id() {
+		return this.props.id;
+	}
 
-    public async compactConversation() {
-        this.props.sessionState.transitionTo(SessionStatus.COMPACTING);
-        try {
-            const compactedConversation = await this.props.onCompact(
-                this.messages,
-                this._conversationCheckpoint,
-                this.agent,
-            );
-            this._conversationCheckpoint =
-                compactedConversation.compactedMessaage;
-            this.messages = compactedConversation.retainedMessages;
-            this.emitSessionEvent(AgentSessionEventType.COMPACTION, {});
-        } finally {
-            this.props.sessionState.transitionTo(SessionStatus.WAITING);
-        }
-    }
+	public get llmProvider() {
+		return this.props.llmProvider;
+	}
 
-    private emitSessionEvent(
-        eventType: AgentSessionEventType,
-        context: AgentSessionEventContext,
-    ): void {
-        try {
-            this.props.onSessionEvent(eventType, context);
-        } catch (error) {
-            logger.error("Unable to queue session log event", { error });
-        }
-    }
+	public get agent() {
+		return this.props.agent;
+	}
 
-    private getSessionSystemPrompt(): string {
-        return [this.agent.systemPrompt, this._sessionContext]
-            .filter((context): context is string => Boolean(context))
-            .join("\n");
-    }
+	public get state(): SessionStatus {
+		return this.props.sessionState.currentState;
+	}
 
-    private async initSessionCheck(message: string) {
-        if (this.state === SessionStatus.START) {
-            this.props.sessionState.transitionTo(SessionStatus.INITIALIZING);
-            try {
-                this._sessionContext = await this.props.onNewSessionStart({
-                    systemPrompt: this.agent.systemPrompt,
-                    userPrompt: message,
-                });
-                this.emitSessionEvent(AgentSessionEventType.SYSTEM_MESSAGE, {
-                    message: this.getSessionSystemPrompt(),
-                });
-            } catch (error) {
-                this.props.sessionState.transitionTo(SessionStatus.START);
-                throw error;
-            }
-            this.props.sessionState.transitionTo(SessionStatus.WAITING);
-        } else if (this.state === SessionStatus.INITIALIZING) {
-            throw new DomainError(
-                ErrorCode.VALIDATION_ERROR,
-                "Session initialization is already in progress",
-            );
-        }
-    }
+	public get interruptedStreamAttempt(): Readonly<InterruptionDetails> | null {
+		return this.props.sessionState.interruptedStreamAttempt;
+	}
 
-    /**
-     * We split conversation message from system prompt to make it easier
-     * for conversation processes without affecting system prompt (i.e compaction)
-     */
-    public async sendMessage(message: string): Promise<ISessionResult> {
-        await this.initSessionCheck(message);
-        // Prepare dynamic message
-        const sanitizedMessage = await this.agent.onMessage(message);
-        this.emitSessionEvent(AgentSessionEventType.USER_MESSAGE, {
-            message,
-        });
-        this.messages.push({ role: "user", content: sanitizedMessage });
+	public async compactConversation() {
+		this.props.sessionState.transitionTo(SessionStatus.COMPACTING);
+		const currentMessage = this.conversation.currentMessage;
+		try {
+			await this.conversation.compact(this.props.compactionStrategy, this.agent);
+			this.emitSessionEvent(AgentSessionEventType.COMPACTION, {
+				message:
+					typeof currentMessage?.content === 'string'
+						? currentMessage.content
+						: undefined,
+			});
+		} finally {
+			this.props.sessionState.transitionTo(SessionStatus.WAITING);
+		}
+	}
 
-        // Loop
-        let step = 0;
-        let response: ILlmGenerateTextOutput | null = null;
-        let stopReason: LlmTextStopReason = LlmTextStopReason.TOOL_CALL;
-        while (step < MAX_AGENT_LOOP_STEP) {
-            let retries = 0;
+	private emitSessionEvent(
+		eventType: AgentSessionEventType,
+		context: AgentSessionEventContext,
+	): void {
+		try {
+			this.props.onSessionEvent(eventType, context);
+		} catch (error) {
+			logger.error('Unable to queue session log event', { error });
+		}
+	}
 
-            while (retries < MAX_RETRY_PER_STEP) {
-                this.props.sessionState.transitionTo(SessionStatus.REASONING);
-                try {
-                    response = await this.llmProvider.generateText({
-                        config: {
-                            model: this.props.model,
-                            systemPrompt: [
-                                this.getSessionSystemPrompt(),
-                                this._conversationCheckpoint,
-                            ]
-                                .filter(Boolean)
-                                .join("\n"),
-                            availableTools: this.agent.agentTools,
-                            outputSchema: this.agent.outputSchema,
-                        },
-                        messages: this.messages,
-                    });
-                    this._validateResponse(response);
-                    break;
-                } catch (error) {
-                    retries++;
-                    this.emitSessionEvent(
-                        AgentSessionEventType.SESSION_ERROR,
-                        {},
-                    );
-                }
-            }
+	private getSessionSystemPrompt(): string {
+		return [this.agent.systemPrompt, this._sessionContext]
+			.filter((context): context is string => Boolean(context))
+			.join('\n');
+	}
 
-            if (retries >= MAX_RETRY_PER_STEP || response == null) {
-                if (retries >= MAX_RETRY_PER_STEP) {
-                    this.emitSessionEvent(
-                        AgentSessionEventType.SESSION_TIMEOUT,
-                        {},
-                    );
-                }
-                throw new DomainError(
-                    ErrorCode.AI_PROVIDER_RESPONSE_ERROR,
-                    "Unable to send request to provider",
-                );
-            }
+	private getProviderSystemPrompt(): string {
+		return this.conversation.buildProviderSystemPrompt(this.getSessionSystemPrompt());
+	}
 
-            stopReason = response.stopReason;
-            step++;
+	private async initSessionCheck(message: string) {
+		if (this.state !== SessionStatus.START && this.state !== SessionStatus.INITIALIZING) return;
+		if (this.state === SessionStatus.INITIALIZING) {
+			throw new DomainError(
+				ErrorCode.VALIDATION_ERROR,
+				'Session initialization is already in progress',
+			);
+		}
+		this.props.sessionState.transitionTo(SessionStatus.INITIALIZING);
+		try {
+			this._sessionContext = await this.props.onNewSessionStart({
+				systemPrompt: this.agent.systemPrompt,
+				userPrompt: message,
+			});
+			this.emitSessionEvent(AgentSessionEventType.SYSTEM_MESSAGE, {
+				message: this.getSessionSystemPrompt(),
+			});
+		} catch (error) {
+			this.props.sessionState.transitionTo(SessionStatus.START);
+			throw error;
+		}
+		this.props.sessionState.transitionTo(SessionStatus.WAITING);
+	}
 
-            this.messages.push(...response.messages);
+	public async sendMessage(message: string): Promise<ISessionResult> {
+		const turn = this.runTurn(message, this.generateStrategy);
+		let result = await turn.next();
+		while (!result.done) {
+			result = await turn.next();
+		}
+		return result.value;
+	}
 
-            if (stopReason !== LlmTextStopReason.TOOL_CALL) break;
+	public async *streamMessage(message: string): AsyncGenerator<string> {
+		yield* this.runTurn(message, this.streamStrategy);
+	}
 
-            // Tool invocation steps, hand rolled
-            // Enhancement:
-            // can be offloaded into a queue/runner pattern in the future
-            // Optional (Tool call preservation)
-            if (!response.toolCalls?.length) {
-                this.emitSessionEvent(AgentSessionEventType.SESSION_ERROR, {});
-                throw new DomainError(
-                    ErrorCode.AI_PROVIDER_RESPONSE_ERROR,
-                    "Tool call stop reason without any tool call",
-                );
-            }
-            this.props.sessionState.transitionTo(SessionStatus.TOOL);
-            const toolCallResults = await this.toolInvoker.invoke(
-                response.toolCalls,
-            );
-            this.messages.push(toolCallResults);
-        }
+	private async *runTurn<TChunk extends string>(
+		message: string,
+		strategy: AgentTurnStrategy<TModelType, TChunk>,
+	): AsyncGenerator<TChunk, ISessionResult> {
+		await this.prepareTurn(message);
+		return yield* this.agentLoop.run(message, strategy);
+	}
 
-        if (step >= MAX_AGENT_LOOP_STEP) {
-            logger.error("Max iteration reached, stopping loop");
-            throw new DomainError(
-                ErrorCode.MAX_AGENT_LOOP_ITERATION_REACHED,
-                "Agent loop reached its iteration limit",
-            );
-        }
+	private async prepareTurn(message: string): Promise<void> {
+		await this.initSessionCheck(message);
+		const sanitizedMessage = await this.agent.onMessage(message);
+		this.emitSessionEvent(AgentSessionEventType.USER_MESSAGE, { message });
+		this.conversation.append({ role: 'user', content: sanitizedMessage });
+	}
 
-        if (response == null) {
-            logger.error("Empty response");
-            throw new DomainError(
-                ErrorCode.MODEL_RESPONSE_VALIDATION_ERROR,
-                "Agent loop received no response",
-            );
-        }
-
-        if (response.stopReason === LlmTextStopReason.STOP) {
-            this.emitSessionEvent(AgentSessionEventType.ASSISTANT_MESSAGE, {
-                message: response.reply,
-            });
-            this.props.sessionState.transitionTo(SessionStatus.WAITING);
-            return { reply: response.reply, output: response.output };
-        }
-
-        //TODO: Handle other stop reason
-        logger.warn("Unhandled response", response);
-        throw new DomainError(
-            ErrorCode.NOT_IMPLEMENTED,
-            `Unhandled agent stop reason: ${response.stopReason}`,
-        );
-    }
-
-    private _validateResponse(response: ILlmGenerateTextOutput) {
-        if (response.stopReason === LlmTextStopReason.ERROR) {
-            throw new DomainError(
-                ErrorCode.AI_PROVIDER_RESPONSE_ERROR,
-                "Provider returned an error response",
-            );
-        }
-        if (response.messages.length === 0 && response.reply.length === 0) {
-            throw new DomainError(
-                ErrorCode.MODEL_RESPONSE_VALIDATION_ERROR,
-                "Model returned no messages or reply",
-            );
-        }
-    }
-
-    public async *streamMessage(message: string): AsyncGenerator<string> {
-        await this.initSessionCheck(message)
-        this.emitSessionEvent(AgentSessionEventType.USER_MESSAGE, {
-            message,
-        });
-        this.messages.push({ role: "user", content: message });
-
-        // Loop
-        const MAX_ITERATION = 10;
-        let iteration = 0;
-        let assistantReply = "";
-        let stopReason: LlmTextStopReason = LlmTextStopReason.TOOL_CALL;
-        while (
-            stopReason === LlmTextStopReason.TOOL_CALL &&
-            iteration < MAX_ITERATION
-        ) {
-            let response;
-            this.props.sessionState.transitionTo(SessionStatus.REASONING);
-            try {
-                response = await this.llmProvider.streamText({
-                    config: {
-                        model: this.props.model,
-                        systemPrompt: this.getSessionSystemPrompt(),
-                        availableTools: this.agent.agentTools,
-                        outputSchema: this.agent.outputSchema,
-                    },
-                    messages: this.messages,
-                    onToolCall: (toolCall) =>
-                        this.toolInvoker.logToolCall(toolCall),
-                    onToolResult: (toolCall, output) =>
-                        this.toolInvoker.logToolResult(toolCall, output),
-                });
-
-                for await (const chunk of response.reply) {
-                    assistantReply += chunk;
-                    yield chunk;
-                }
-            } catch (error) {
-                this.emitSessionEvent(AgentSessionEventType.SESSION_ERROR, {});
-                throw error;
-            }
-
-            let completed;
-            try {
-                completed = await response.completed;
-            } catch (error) {
-                this.emitSessionEvent(AgentSessionEventType.SESSION_ERROR, {});
-                throw error;
-            }
-            stopReason = completed.stopReason;
-
-            if (stopReason === LlmTextStopReason.STOP) {
-                this.emitSessionEvent(AgentSessionEventType.ASSISTANT_MESSAGE, {
-                    message: assistantReply,
-                });
-                this.props.sessionState.transitionTo(SessionStatus.WAITING);
-                return;
-            }
-
-            if (stopReason !== LlmTextStopReason.TOOL_CALL) {
-                if (stopReason === LlmTextStopReason.ERROR) {
-                    this.emitSessionEvent(
-                        AgentSessionEventType.SESSION_ERROR,
-                        {},
-                    );
-                }
-                throw new DomainError(
-                    ErrorCode.NOT_IMPLEMENTED,
-                    `Unhandled agent stop reason :${stopReason}`,
-                );
-            }
-
-            this.messages.push(...completed.messages);
-            iteration++;
-        }
-        logger.error("Max iteration reached, stopping loop");
-        throw new DomainError(
-            ErrorCode.MAX_AGENT_LOOP_ITERATION_REACHED,
-            "Agent loop reached its iteration limit",
-        );
-    }
+	private getProviderConfig() {
+		return {
+			model: this.props.model,
+			systemPrompt: this.getProviderSystemPrompt(),
+			availableTools: this.agent.agentTools,
+			outputSchema: this.agent.outputSchema,
+		};
+	}
 }
 
 function getModelName(model: unknown): string {
-    if (typeof model === "string") return model;
-    if (
-        typeof model === "object" &&
-        model !== null &&
-        "modelId" in model &&
-        typeof model.modelId === "string"
-    ) {
-        return model.modelId;
-    }
-    return String(model);
+	if (typeof model === 'string') return model;
+	if (
+		typeof model === 'object' &&
+		model !== null &&
+		'modelId' in model &&
+		typeof model.modelId === 'string'
+	) {
+		return model.modelId;
+	}
+	return String(model);
 }

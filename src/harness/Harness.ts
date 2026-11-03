@@ -3,10 +3,11 @@ import { ModelConversationMessage } from '../agents/Interfaces';
 import { CompactionEngine } from '../compaction/core/CompactionEngine';
 import { ContextAssembler } from '../memory/core/ContextAssembler';
 import { ILlmProvider } from '../providers/Interfaces';
+import { ToolInvoker } from '../tools/core/ToolInvoker';
 import logger from '../utils/Logger';
 import Uuidv4Generator from '../utils/Uuidv4Generator';
-import { AgentSession } from './agentSession';
-import { HarnessSessionLogger } from './HarnessSessionLogger';
+import { AgentSession } from './AgentSession';
+import { AgentSessionLogger } from './AgentSessionLogger';
 import { SessionState } from './SessionState';
 
 /**
@@ -28,10 +29,10 @@ export type IHarnessDeps = {
 export class Harness {
 	public agentSessions: AgentSession<unknown>[] = [];
 	public agentSessionRegistry: Map<string, AgentSession<unknown>> = new Map();
-	private readonly sessionLogger: HarnessSessionLogger;
+	private readonly sessionLogger: AgentSessionLogger;
 
 	public constructor(private readonly deps: IHarnessDeps) {
-		this.sessionLogger = new HarnessSessionLogger();
+		this.sessionLogger = new AgentSessionLogger();
 	}
 
 	public async close(): Promise<void> {
@@ -79,7 +80,7 @@ export class Harness {
 			llmProvider: args.llmProvider,
 			agent: args.agent,
 			model: args.model,
-			onCompact: this.doCompaction.bind(this),
+			compactionStrategy: this.doCompaction.bind(this),
 			onNewSessionStart: (input) => this.deps.contextAssembler.prepareSessionContext(input),
 			onSessionEvent: (eventType, context) =>
 				this.sessionLogger.onSessionEvent(sessionId, eventType, context),

@@ -6,10 +6,10 @@ import { finished } from 'node:stream/promises';
 import logger from '../utils/Logger';
 import type { ILlmToolCall } from '../providers/Interfaces';
 import type { IToolInvocationLogger } from '../tools/core/ToolInvoker';
-import { AgentSessionEventType } from './agentSession';
-import type { AgentSessionEventContext } from './agentSession';
+import { AgentSessionEventType } from './AgentSession';
+import type { AgentSessionEventContext } from './AgentSession';
 
-export class HarnessSessionLogger implements IToolInvocationLogger {
+export class AgentSessionLogger implements IToolInvocationLogger {
 	private readonly queues = new Map<string, Promise<void>>();
 	private readonly streams = new Map<string, WriteStream>();
 	private readonly streamErrors = new Map<string, Error>();
