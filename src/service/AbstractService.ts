@@ -1,3 +1,3 @@
 export abstract class AbstractService {
-    public abstract run(): Promise<void>;
+	public abstract run(): Promise<void>;
 }

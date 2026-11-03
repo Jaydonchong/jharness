@@ -2,3 +2,6 @@ dist/
 package-lock.json
 credentials.json
 .env
+
+*.md
+.vscode/*

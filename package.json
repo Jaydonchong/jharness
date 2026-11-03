@@ -7,7 +7,8 @@
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"build": "tsc",
 		"start": "tsc && node --env-file=.env dist/index.js",
-		"prepare": "node scripts/install-husky.mjs"
+		"prepare": "node scripts/install-husky.mjs",
+		"prettify": "prettier . --write"
 	},
 	"lint-staged": {
 		"*.{ts,tsx,js,jsx,mjs,cjs}": "prettier --write"

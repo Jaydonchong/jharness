@@ -1,13 +1,11 @@
-import { CompactionOutput } from "./Interfaces";
+import { CompactionOutput } from './Interfaces';
 
 export abstract class AbstractCompactionPipelineNode {
-    next: AbstractCompactionPipelineNode | null = null;
+	next: AbstractCompactionPipelineNode | null = null;
 
-    public setNext(node: AbstractCompactionPipelineNode) {
-        this.next = node;
-    }
+	public setNext(node: AbstractCompactionPipelineNode) {
+		this.next = node;
+	}
 
-    public abstract execute(
-        messages: CompactionOutput,
-    ): Promise<CompactionOutput>;
+	public abstract execute(messages: CompactionOutput): Promise<CompactionOutput>;
 }
