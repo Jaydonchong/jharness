@@ -1,3 +1,6 @@
+import type { RAGChunkEntity } from '../data/RAGChunkEntity.entity';
+import type { RAGDocumentEntity } from '../data/RAGDocumentEntity.entity';
+
 export type RAGChunkLocation = {
 	startOffset: number;
 	endOffset: number;
@@ -33,6 +36,32 @@ export class RAGChunk {
 	public readonly documentChunkMetadata: Record<string, unknown>;
 	public readonly chunkingMetadata: RAGChunkingMetadata;
 	public readonly createdAt: Date;
+
+	public static fromEntity(entity: RAGChunkEntity): RAGChunk {
+		return new RAGChunk({
+			id: entity.id,
+			documentId: entity.documentId,
+			content: entity.content,
+			ordinal: entity.ordinal,
+			location: entity.location,
+			documentChunkMetadata: entity.documentChunkMetadata,
+			chunkingMetadata: entity.chunkingMetadata,
+			createdAt: entity.createdAt,
+		});
+	}
+
+	public static toEntity(chunk: RAGChunk): RAGChunkEntity {
+		return {
+			id: chunk.id,
+			document: { id: chunk.documentId } as unknown as RAGDocumentEntity,
+			content: chunk.content,
+			ordinal: chunk.ordinal,
+			location: chunk.location,
+			documentChunkMetadata: chunk.documentChunkMetadata,
+			chunkingMetadata: chunk.chunkingMetadata,
+			createdAt: chunk.createdAt,
+		} as RAGChunkEntity;
+	}
 
 	public constructor(props: RAGChunkProps) {
 		if (!props.id.trim() || !props.documentId.trim()) {
