@@ -1,4 +1,14 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import {
+	Column,
+	CreateDateColumn,
+	Entity,
+	Index,
+	JoinColumn,
+	ManyToOne,
+	PrimaryGeneratedColumn,
+	RelationId,
+} from 'typeorm';
+import { RAGDocumentEntity } from './RAGDocumentEntity.entity';
 
 export type RAGChunkLocation = {
 	startOffset: number;
@@ -14,12 +24,16 @@ export type RAGChunkingDetails = {
 };
 
 @Entity({ name: 'rag_chunks' })
-@Index('IDX_rag_chunks_document_id', ['documentId'])
+@Index('IDX_rag_chunks_document_id', ['document'])
 export class RAGChunkEntity {
 	@PrimaryGeneratedColumn('uuid')
 	id!: string;
 
-	@Column({ name: 'document_id', type: 'uuid' })
+	@ManyToOne(() => RAGDocumentEntity, { nullable: false, onDelete: 'CASCADE' })
+	@JoinColumn({ name: 'document_id', referencedColumnName: 'id' })
+	document!: RAGDocumentEntity;
+
+	@RelationId((chunk: RAGChunkEntity) => chunk.document)
 	documentId!: string;
 
 	@Column({ type: 'text' })
@@ -31,11 +45,11 @@ export class RAGChunkEntity {
 	@Column({ type: 'jsonb', nullable: true })
 	location!: RAGChunkLocation | null;
 
-	@Column({ type: 'jsonb', default: () => "'{}'::jsonb" })
-	metadata!: Record<string, unknown>;
+	@Column({ name: 'document_chunk_metadata', type: 'jsonb', default: () => "'{}'::jsonb" })
+	documentChunkMetadata!: Record<string, unknown>;
 
-	@Column({ type: 'jsonb' })
-	chunking!: RAGChunkingDetails;
+	@Column({ name: 'chunking_metadata', type: 'jsonb' })
+	chunkingMetadata!: RAGChunkingDetails;
 
 	@CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
 	createdAt!: Date;
