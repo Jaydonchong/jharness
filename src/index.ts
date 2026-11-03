@@ -22,10 +22,14 @@ import { WalkDirectoryTool } from './tools/workspace/WalkDirectoryTool';
 import { WriteFileTool } from './tools/workspace/WriteFileTool';
 import { WorkspaceToolSet } from './tools/workspace/WorkspaceToolSet';
 import { VERCEL_AI_MODELS, VercelSDK } from './providers/VercelSDK';
+import { AppDataSource } from './database/data-source';
+import logger from './utils/Logger';
 
 const PROMPT = MOCK_NEWS;
 
 void (async () => {
+	const dataSource = await AppDataSource.initialize();
+	logger.info('dataSource initialized', { intiialized: dataSource.isInitialized });
 	/**Tools */
 	const googleCalApi = new GoogleCalendarApi(process.env.GOOGLE_GCAL_CREDENTIALS_PATH!);
 	const gcalGetCalendarEventsTool = new GcalGetCalendarEventsTool({
