@@ -8,6 +8,8 @@
 		"build": "tsc",
 		"start": "tsc && node --env-file=.env dist/index.js",
 		"migration:generate": "npm run build && node --env-file=.env ./node_modules/typeorm/cli.js migration:generate -d dist/database/data-source.js",
+		"migration:run": "npm run build && node --env-file=.env ./node_modules/typeorm/cli.js migration:run -d dist/database/data-source.js",
+		"migration:revert": "npm run build && node --env-file=.env ./node_modules/typeorm/cli.js migration:revert -d dist/database/data-source.js",
 		"prepare": "node scripts/install-husky.mjs",
 		"prettify": "prettier . --write"
 	},

@@ -1,18 +1,9 @@
 import type { RAGChunkEntity } from '../data/RAGChunkEntity.entity';
 import type { RAGDocumentEntity } from '../data/RAGDocumentEntity.entity';
+import type { ChunkLocation, ChunkingMetadata } from '../../utils/chunking/ChunkingTypes';
 
-export type RAGChunkLocation = {
-	startOffset: number;
-	endOffset: number;
-	page?: number;
-	sectionPath?: string[];
-};
-
-export type RAGChunkingMetadata = {
-	strategy: string;
-	version: string;
-	configHash?: string;
-};
+export type RAGChunkLocation = ChunkLocation;
+export type RAGChunkingMetadata = ChunkingMetadata;
 
 export type RAGChunkProps = {
 	id: string;
