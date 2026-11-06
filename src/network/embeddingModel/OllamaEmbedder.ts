@@ -10,7 +10,6 @@ type OllamaEmbeddingResponse = {
 };
 
 type OllamaEmbedderConfig = {
-	model: OllamaEmbeddingModel;
 	baseUrl?: string;
 	timeoutMs?: number;
 };
@@ -35,13 +34,6 @@ export class OllamaEmbedder extends AbstractEmbeddingModel<OllamaEmbeddingModel>
 
 	public constructor(config: OllamaEmbedderConfig) {
 		super('Ollama');
-
-		if (!config.model.trim()) {
-			throw new DomainError(
-				ErrorCode.AI_PROVIDER_CONFIGURATION_ERROR,
-				'Ollama model name is required.',
-			);
-		}
 
 		const baseUrl = (config.baseUrl ?? process.env.OLLAMA_BASE_URL ?? DEFAULT_BASE_URL).replace(
 			/\/+$/,
