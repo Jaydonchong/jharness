@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { ModelConversationMessage } from '../../agent/agentConfig/Interfaces';
 import { CompactionEngine } from '../../compaction/core/CompactionEngine';
 import { AbstractMemoryStore } from '../memoryStore/AbstractMemoryStore';
+import { PGChunkMemoryStore } from '../memoryStore/PGChunkMemoryStore/PGChunkMemoryStore';
 import {
 	MEMORY_TYPE,
 	MemoryFragment,
@@ -11,6 +12,7 @@ import {
 
 type IContextAssemblerDeps = {
 	memoryStore: AbstractMemoryStore;
+	pgChunkMemoryStore: PGChunkMemoryStore;
 	compactionEngine: CompactionEngine;
 };
 
@@ -31,13 +33,39 @@ export class ContextAssembler {
 	}
 
 	public async remember(memory: MemoryFragment): Promise<void> {
-		await this.deps.memoryStore.store(memory);
+		const memoryStore =
+			memory.type === MEMORY_TYPE.FACT ? this.deps.pgChunkMemoryStore : this.deps.memoryStore;
+		await memoryStore.store(memory);
 	}
 
 	public async recall(
 		retrievalContext: MemoryRetrievalContext,
 	): Promise<Partial<MemoryFragment[]>> {
-		return await this.deps.memoryStore.retrieve(retrievalContext);
+		const requestedTypes = retrievalContext.filters?.types;
+		const localTypes = requestedTypes
+			? requestedTypes.filter((type) => type !== MEMORY_TYPE.FACT)
+			: [MEMORY_TYPE.DECISION, MEMORY_TYPE.PREFERENCE, MEMORY_TYPE.SESSION_SUMMARY];
+		const retrievals: Array<Promise<Partial<MemoryFragment[]>>> = [];
+
+		if (localTypes.length > 0) {
+			retrievals.push(
+				this.deps.memoryStore.retrieve({
+					...retrievalContext,
+					filters: { ...retrievalContext.filters, types: localTypes },
+				}),
+			);
+		}
+
+		if (!requestedTypes || requestedTypes.includes(MEMORY_TYPE.FACT)) {
+			retrievals.push(
+				this.deps.pgChunkMemoryStore.retrieve({
+					...retrievalContext,
+					filters: { ...retrievalContext.filters, types: [MEMORY_TYPE.FACT] },
+				}),
+			);
+		}
+
+		return (await Promise.all(retrievals)).flat();
 	}
 
 	public async listPreferenceGroups(): Promise<PreferenceGroupIndexEntry[]> {

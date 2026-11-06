@@ -14,6 +14,9 @@ import { DedupeRepeatedContent } from './compaction/handlers/DedupeRepeatedConte
 import { CompactionEngine } from './compaction/core/CompactionEngine';
 import { ContextAssembler } from './memory/core/ContextAssembler';
 import { LocalFileMemoryStore } from './memory/memoryStore/LocalFileMemoryStore/LocalFileMemoryStore';
+import { PGChunkMemoryStore } from './memory/memoryStore/PGChunkMemoryStore/PGChunkMemoryStore';
+import { RAGChunkRepository } from './memory/data/RAGChunkRepository';
+import { RAGDocumentRepository } from './memory/data/RAGDocumentRepository';
 import { RememberTool } from './tools/memory/RememberTool';
 import { RecallTool } from './tools/memory/RecallTool';
 import { ReadFileTool } from './tools/workspace/ReadFileTool';
@@ -24,38 +27,8 @@ import { WorkspaceToolSet } from './tools/workspace/WorkspaceToolSet';
 import { VERCEL_AI_MODELS, VercelSDK } from './providers/VercelSDK';
 import { AppDataSource } from './database/data-source';
 import logger from './utils/Logger';
-import { OllamaEmbedder, OllamaEmbeddingModel } from './network/embeddingModel/OllamaEmbedder';
-import { EmbeddingPurpose } from './network/embeddingModel/AbstractEmbeddingModel';
-
-const PROMPT = MOCK_NEWS;
-
-// const runEmbeddingDemo = async (): Promise<void> => {
-// 	const embedder = new OllamaEmbedder({ model: OllamaEmbeddingModel.EMBEDDINGGEMMA_2_270M });
-// 	const [documentVector] = await embedder.embed(
-// 		['RAG retrieves useful document chunks to provide context for an answer.'],
-// 		EmbeddingPurpose.INDEXING,
-// 	);
-// 	const [queryVector] = await embedder.embed(
-// 		['How does RAG find context for an answer?'],
-// 		EmbeddingPurpose.RETRIEVAL,
-// 	);
-
-// 	console.info('Ollama embedding demo succeeded', {
-// 		model: embedder.modelKey,
-// 		documentVectorDimensions: documentVector.length,
-// 		queryVectorDimensions: queryVector.length,
-// 		documentVectorPreview: documentVector.slice(0, 5),
-// 		queryVectorPreview: queryVector.slice(0, 5),
-// 	});
-// };
 
 void (async () => {
-	// if (process.argv.includes('--embedding-demo')) {
-	// 	console.log('embedding demo');
-	// 	await runEmbeddingDemo();
-	// 	return;
-	// }
-
 	const dataSource = await AppDataSource.initialize();
 	logger.info('dataSource initialized', { intiialized: dataSource.isInitialized });
 	/**Tools */
@@ -87,6 +60,10 @@ void (async () => {
 	const compactionEngine = new CompactionEngine(baseCompactionPipeline);
 	const contextAssembler = new ContextAssembler({
 		memoryStore: new LocalFileMemoryStore(),
+		pgChunkMemoryStore: new PGChunkMemoryStore(
+			new RAGDocumentRepository(),
+			new RAGChunkRepository(),
+		),
 		compactionEngine,
 	});
 	const memoryTools: [RememberTool, RecallTool] = [

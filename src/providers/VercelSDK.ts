@@ -98,8 +98,8 @@ export enum VERCEL_AI_MODELS {
 
 	// Free model from AI Gateway
 	LING_3_1 = 'inclusionai/ling-3.1-flash-free',
-
-	DEFAULT = 'inclusionai/ling-3.0-flash',
+	NEMOTRON_LIGHTINING = 'nvidia/nemotron-3.5-lightning-free',
+	DEFAULT = 'nvidia/nemotron-3.5-lightning-free',
 }
 
 export class VercelSDK implements ILlmProvider<LanguageModel> {
