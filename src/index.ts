@@ -1,6 +1,9 @@
 import { GoogleCalendarApi } from './network/google/GoogleCalendarApi';
+import { OpenSERP } from '@openserp/sdk';
+import { OpenSerpSearchAdapter } from './network/webSearch/OpenSerpSearchAdapter';
 import { MOCK_NEWS } from './utils/MockData';
 import { GcalGetCalendarEventsTool } from './tools/gcal/GcalTools';
+import { WebSearchTool } from './tools/webSearch/WebSearchTool';
 import { Harness } from './harness/Harness';
 import { DiscordWebhookApi } from './network/discord/DiscordWebhookApi';
 import { AGeneral } from './agent/agentConfig/General';
@@ -25,6 +28,7 @@ import { WalkDirectoryTool } from './tools/workspace/WalkDirectoryTool';
 import { WriteFileTool } from './tools/workspace/WriteFileTool';
 import { WorkspaceToolSet } from './tools/workspace/WorkspaceToolSet';
 import { VERCEL_AI_MODELS, VercelSDK } from './providers/VercelSDK';
+import { CloudflareReranker } from './network/rerankingModel/CloudflareReranker';
 import { AppDataSource } from './database/data-source';
 import logger from './utils/Logger';
 
@@ -36,6 +40,13 @@ void (async () => {
 	const gcalGetCalendarEventsTool = new GcalGetCalendarEventsTool({
 		googleCalApi,
 	});
+	const openSerpClient = new OpenSERP({
+		apiKey: process.env.OPENSERP_API_KEY,
+		baseUrl: process.env.OPENSERP_BASE_URL,
+	});
+	const openSerpSearchAdapter = new OpenSerpSearchAdapter({ client: openSerpClient });
+	// Deliberately leave this out of agent configs until web search is enabled for one.
+	const webSearchTool = new WebSearchTool({ webSearchAdapter: openSerpSearchAdapter });
 	const discordWebhookApi = new DiscordWebhookApi();
 	const discordBotClient = new DiscordBotClient();
 	/**Provider */
@@ -63,6 +74,7 @@ void (async () => {
 		pgChunkMemoryStore: new PGChunkMemoryStore(
 			new RAGDocumentRepository(),
 			new RAGChunkRepository(),
+			new CloudflareReranker({}),
 		),
 		compactionEngine,
 	});

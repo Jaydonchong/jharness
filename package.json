@@ -20,6 +20,7 @@
 	"author": "",
 	"license": "ISC",
 	"dependencies": {
+		"@openserp/sdk": "0.2.9",
 		"@types/jest": "^30.0.0",
 		"@types/node": "^26.6.4",
 		"ai": "^7.0.127",
