@@ -21,7 +21,7 @@ import { AbstractMemoryStore } from '../AbstractMemoryStore';
 
 const CHUNK_SIZE_LIMIT = 1000;
 const CHUNK_OVERLAP = 100;
-const DEFAULT_RETRIEVAL_LIMIT = 5;
+const DEFAULT_RETRIEVAL_LIMIT = 20;
 
 export class PGChunkMemoryStore extends AbstractMemoryStore {
 	private readonly chunker = new TextChunker();
@@ -98,6 +98,38 @@ export class PGChunkMemoryStore extends AbstractMemoryStore {
 	}
 
 	public async retrieve(context: MemoryRetrievalContext): Promise<Partial<MemoryFragment[]>> {
+		const [semanticChunks, lexicalChunks] = await Promise.all([
+			this.retrieveSemanticChunks(context),
+			this.retrieveLexicalChunks(context),
+		]);
+		const uniqueChunks = new Map<string, RAGChunk>();
+
+		for (const chunk of [...semanticChunks, ...lexicalChunks]) {
+			if (!uniqueChunks.has(chunk.id)) {
+				uniqueChunks.set(chunk.id, chunk);
+			}
+		}
+
+		return [...uniqueChunks.values()].map(toMemoryFragment);
+	}
+
+	public async retrieveSemantically(
+		context: MemoryRetrievalContext,
+	): Promise<Partial<MemoryFragment[]>> {
+		const chunks = await this.retrieveSemanticChunks(context);
+
+		return chunks.map(toMemoryFragment);
+	}
+
+	public async retrieveLexically(
+		context: MemoryRetrievalContext,
+	): Promise<Partial<MemoryFragment[]>> {
+		const chunks = await this.retrieveLexicalChunks(context);
+
+		return chunks.map(toMemoryFragment);
+	}
+
+	private async retrieveSemanticChunks(context: MemoryRetrievalContext): Promise<RAGChunk[]> {
 		const [queryEmbedding] = await this.embedder.embed(
 			[context.context.query],
 			EmbeddingPurpose.RETRIEVAL,
@@ -110,9 +142,15 @@ export class PGChunkMemoryStore extends AbstractMemoryStore {
 			context.limit ?? DEFAULT_RETRIEVAL_LIMIT,
 			context.filters,
 		] as const;
-		const chunks = await this.chunkRepository.findDotProductSimilar(...searchArguments);
+		return this.chunkRepository.findDotProductSimilar(...searchArguments);
+	}
 
-		return chunks.map((chunk) => toMemoryFragment(chunk));
+	private async retrieveLexicalChunks(context: MemoryRetrievalContext): Promise<RAGChunk[]> {
+		return this.chunkRepository.findLexical(
+			context.context.query,
+			context.limit ?? DEFAULT_RETRIEVAL_LIMIT,
+			context.filters,
+		);
 	}
 
 	private normalizeEmbedding(embedding: number[]): number[] {

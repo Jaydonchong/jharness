@@ -1,4 +1,4 @@
-import type { EntityManager } from 'typeorm';
+import type { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { AppDataSource } from '../../database/data-source';
 import { MEMORY_TYPE, type MemoryRetrievalContext } from '../core/Interfaces';
 import { RAGChunk } from '../model/RAGChunk';
@@ -48,8 +48,48 @@ export class RAGChunkRepository {
 				{ modelKey },
 			)
 			.orderBy('embedding.embedding <#> CAST(:vector AS vector)', 'ASC')
-			.setParameter('vector', vector)
-			.andWhere("chunk.document_chunk_metadata ->> 'type' IN (:...types)", { types });
+			.setParameter('vector', vector);
+		this.applyRetrievalFilters(query, filters);
+
+		const entities = await query.take(limit).getMany();
+
+		return entities.map(RAGChunk.fromEntity);
+	}
+
+	public async findLexical(
+		searchText: string,
+		limit: number,
+		filters?: MemoryRetrievalContext['filters'],
+	): Promise<RAGChunk[]> {
+		const types = filters?.types ?? [MEMORY_TYPE.FACT];
+		if (types.length === 0) {
+			return [];
+		}
+
+		const query = this.getChunkRepository()
+			.createQueryBuilder('chunk')
+			.where("chunk.search_vector @@ websearch_to_tsquery('english', :searchText)", {
+				searchText,
+			});
+		this.applyRetrievalFilters(query, filters);
+
+		const rank =
+			"ts_rank_cd(chunk.search_vector, websearch_to_tsquery('english', :searchText))";
+		const entities = await query
+			.orderBy(rank, 'DESC')
+			.addOrderBy('chunk.createdAt', 'DESC')
+			.take(limit)
+			.getMany();
+
+		return entities.map(RAGChunk.fromEntity);
+	}
+
+	private applyRetrievalFilters(
+		query: SelectQueryBuilder<RAGChunkEntity>,
+		filters?: MemoryRetrievalContext['filters'],
+	): void {
+		const types = filters?.types ?? [MEMORY_TYPE.FACT];
+		query.andWhere("chunk.document_chunk_metadata ->> 'type' IN (:...types)", { types });
 
 		if (filters?.tags?.length) {
 			query.andWhere("chunk.document_chunk_metadata -> 'tags' @> CAST(:tags AS jsonb)", {
@@ -65,10 +105,6 @@ export class RAGChunkRepository {
 		if (filters?.to) {
 			query.andWhere(`${createdAt} <= :to`, { to: filters.to });
 		}
-
-		const entities = await query.take(limit).getMany();
-
-		return entities.map(RAGChunk.fromEntity);
 	}
 
 	private getChunkRepository(manager?: EntityManager) {

@@ -27,6 +27,17 @@ export class RAGChunkEntity {
 	@Column({ type: 'text' })
 	content!: string;
 
+	@Column({
+		name: 'search_vector',
+		type: 'tsvector',
+		select: false,
+		insert: false,
+		update: false,
+		asExpression: "to_tsvector('english'::regconfig, content)",
+		generatedType: 'STORED',
+	})
+	searchVector!: string;
+
 	@Column({ type: 'integer' })
 	ordinal!: number;
 
