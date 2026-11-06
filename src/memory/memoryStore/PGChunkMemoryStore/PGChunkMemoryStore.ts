@@ -4,6 +4,8 @@ import {
 	OllamaEmbedder,
 	OllamaEmbeddingModel,
 } from '../../../network/embeddingModel/OllamaEmbedder';
+import { CloudflareRerankerModel } from '../../../network/rerankingModel/CloudflareReranker';
+import { AbstractRerankingModel } from '../../../network/rerankingModel/AbstractRerankingModel';
 import { ChunkingStrategyType } from '../../../utils/chunking/strategies/ChunkingStrategy';
 import { TextChunker } from '../../../utils/chunking/TextChunker';
 import { AppDataSource } from '../../../database/data-source';
@@ -32,6 +34,7 @@ export class PGChunkMemoryStore extends AbstractMemoryStore {
 	public constructor(
 		private readonly documentRepository: RAGDocumentRepository,
 		private readonly chunkRepository: RAGChunkRepository,
+		private readonly reranker: AbstractRerankingModel<CloudflareRerankerModel>,
 	) {
 		super();
 	}
@@ -104,14 +107,27 @@ export class PGChunkMemoryStore extends AbstractMemoryStore {
 			this.retrieveSemanticChunks(context),
 			this.retrieveLexicalChunks(context),
 		]);
-		const chunks = this.reciprocalRankFusion(semanticChunks, lexicalChunks);
+
+		// TODO: Query Transformaation
+
+		const fusedChunks = this.reciprocalRankFusion(semanticChunks, lexicalChunks);
+		const rerankedChunks = await this.reranker.rerank(
+			context.context.query,
+			fusedChunks.map(({ content }) => content),
+			CloudflareRerankerModel.BGE_RERANKER_BASE,
+		);
+		const chunks = rerankedChunks.map(({ index }) => fusedChunks[index]);
 
 		// Return top 5 chunks
 		const resultLength =
 			chunks.length > DEFAULT_RETRIEVAL_RESULT_LIMIT
 				? DEFAULT_RETRIEVAL_RESULT_LIMIT
 				: chunks.length;
-		return chunks.slice(0, resultLength).map(toMemoryFragment);
+		const resultSet = chunks.slice(0, resultLength).map(toMemoryFragment);
+
+		// TODO:
+
+		return resultSet;
 	}
 
 	private async retrieveSemanticChunks(context: MemoryRetrievalContext): Promise<RAGChunk[]> {
