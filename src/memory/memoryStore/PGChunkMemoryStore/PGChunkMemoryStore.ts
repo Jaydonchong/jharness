@@ -21,7 +21,9 @@ import { AbstractMemoryStore } from '../AbstractMemoryStore';
 
 const CHUNK_SIZE_LIMIT = 1000;
 const CHUNK_OVERLAP = 100;
-const DEFAULT_RETRIEVAL_LIMIT = 20;
+const DEFAULT_CHUNK_RETRIEVAL_LIMIT = 20;
+const DEFAULT_RETRIEVAL_RESULT_LIMIT = 5;
+const RRF_K = 60;
 
 export class PGChunkMemoryStore extends AbstractMemoryStore {
 	private readonly chunker = new TextChunker();
@@ -102,31 +104,14 @@ export class PGChunkMemoryStore extends AbstractMemoryStore {
 			this.retrieveSemanticChunks(context),
 			this.retrieveLexicalChunks(context),
 		]);
-		const uniqueChunks = new Map<string, RAGChunk>();
+		const chunks = this.reciprocalRankFusion(semanticChunks, lexicalChunks);
 
-		for (const chunk of [...semanticChunks, ...lexicalChunks]) {
-			if (!uniqueChunks.has(chunk.id)) {
-				uniqueChunks.set(chunk.id, chunk);
-			}
-		}
-
-		return [...uniqueChunks.values()].map(toMemoryFragment);
-	}
-
-	public async retrieveSemantically(
-		context: MemoryRetrievalContext,
-	): Promise<Partial<MemoryFragment[]>> {
-		const chunks = await this.retrieveSemanticChunks(context);
-
-		return chunks.map(toMemoryFragment);
-	}
-
-	public async retrieveLexically(
-		context: MemoryRetrievalContext,
-	): Promise<Partial<MemoryFragment[]>> {
-		const chunks = await this.retrieveLexicalChunks(context);
-
-		return chunks.map(toMemoryFragment);
+		// Return top 5 chunks
+		const resultLength =
+			chunks.length > DEFAULT_RETRIEVAL_RESULT_LIMIT
+				? DEFAULT_RETRIEVAL_RESULT_LIMIT
+				: chunks.length;
+		return chunks.slice(0, resultLength).map(toMemoryFragment);
 	}
 
 	private async retrieveSemanticChunks(context: MemoryRetrievalContext): Promise<RAGChunk[]> {
@@ -139,7 +124,7 @@ export class PGChunkMemoryStore extends AbstractMemoryStore {
 		const searchArguments = [
 			normalizedQueryEmbedding,
 			OllamaEmbeddingModel.EMBEDDINGGEMMA_2_270M,
-			context.limit ?? DEFAULT_RETRIEVAL_LIMIT,
+			context.limit ?? DEFAULT_CHUNK_RETRIEVAL_LIMIT,
 			context.filters,
 		] as const;
 		return this.chunkRepository.findDotProductSimilar(...searchArguments);
@@ -148,9 +133,33 @@ export class PGChunkMemoryStore extends AbstractMemoryStore {
 	private async retrieveLexicalChunks(context: MemoryRetrievalContext): Promise<RAGChunk[]> {
 		return this.chunkRepository.findLexical(
 			context.context.query,
-			context.limit ?? DEFAULT_RETRIEVAL_LIMIT,
+			context.limit ?? DEFAULT_CHUNK_RETRIEVAL_LIMIT,
 			context.filters,
 		);
+	}
+
+	private reciprocalRankFusion(
+		semanticChunks: RAGChunk[],
+		lexicalChunks: RAGChunk[],
+	): RAGChunk[] {
+		const fusedChunks = new Map<string, { chunk: RAGChunk; score: number; order: number }>();
+		let order = 0;
+
+		for (const searchResultSet of [semanticChunks, lexicalChunks]) {
+			searchResultSet.forEach((chunk, index) => {
+				const result = fusedChunks.get(chunk.id) ?? {
+					chunk,
+					score: 0,
+					order: order++,
+				};
+				result.score += 1 / (RRF_K + index + 1);
+				fusedChunks.set(chunk.id, result);
+			});
+		}
+
+		return [...fusedChunks.values()]
+			.sort((left, right) => right.score - left.score || left.order - right.order)
+			.map(({ chunk }) => chunk);
 	}
 
 	private normalizeEmbedding(embedding: number[]): number[] {
