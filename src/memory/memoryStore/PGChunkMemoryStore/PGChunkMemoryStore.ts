@@ -23,6 +23,9 @@ import { AbstractMemoryStore } from '../AbstractMemoryStore';
 
 const CHUNK_SIZE_LIMIT = 1000;
 const CHUNK_OVERLAP = 100;
+const CHUNKING_STRATEGY_VERSION = '1';
+const EMBEDDING_PURPOSE = EmbeddingPurpose.INDEXING;
+const EMBEDDING_MODEL = OllamaEmbeddingModel.EMBEDDINGGEMMA_2_270M;
 const DEFAULT_CHUNK_RETRIEVAL_LIMIT = 20;
 const DEFAULT_RETRIEVAL_RESULT_LIMIT = 5;
 const RRF_K = 60;
@@ -42,27 +45,57 @@ export class PGChunkMemoryStore extends AbstractMemoryStore {
 	public async store(memory: MemoryFragment): Promise<void> {
 		const now = new Date();
 		const documentId = randomUUID();
+		const contentHash = createHash('sha256').update(memory.content).digest('hex');
 		const chunks = this.chunker.chunk(
 			{ content: memory.content },
 			ChunkingStrategyType.FIXED_WINDOW,
 			CHUNK_SIZE_LIMIT,
 			CHUNK_OVERLAP,
 		);
+		const [firstChunk] = chunks;
+		const chunkingStrategy = firstChunk?.chunkingMetadata ?? {
+			strategy: ChunkingStrategyType.FIXED_WINDOW,
+			version: CHUNKING_STRATEGY_VERSION,
+			configHash: createHash('sha256')
+				.update(
+					JSON.stringify({ chunkSizeLimit: CHUNK_SIZE_LIMIT, overlap: CHUNK_OVERLAP }),
+				)
+				.digest('hex'),
+		};
+		const deduplicationKey = createHash('sha256')
+			.update(
+				JSON.stringify({
+					contentHash,
+					chunkingStrategy,
+					embeddingStrategy: {
+						provider: this.embedder.name,
+						model: EMBEDDING_MODEL,
+						purpose: EMBEDDING_PURPOSE,
+					},
+				}),
+			)
+			.digest('hex');
+
+		if (await this.documentRepository.existsByDeduplicationKey(deduplicationKey)) {
+			return;
+		}
+
 		const embeddings = (
 			await this.embedder.embed(
 				chunks.map(({ content }) => content),
-				EmbeddingPurpose.INDEXING,
-				OllamaEmbeddingModel.EMBEDDINGGEMMA_2_270M,
+				EMBEDDING_PURPOSE,
+				EMBEDDING_MODEL,
 			)
 		).map((embedding) => this.normalizeEmbedding(embedding));
 
 		await AppDataSource.transaction(async (manager) => {
-			await this.documentRepository.store(
+			const documentWasInserted = await this.documentRepository.storeIfNotExists(
 				new RAGDocument({
 					id: documentId,
 					sourceReference: null,
 					title: null,
-					contentHash: createHash('sha256').update(memory.content).digest('hex'),
+					contentHash,
+					deduplicationKey,
 					documentMetadata: {
 						type: memory.type,
 						created: memory.created.toISOString(),
@@ -75,6 +108,9 @@ export class PGChunkMemoryStore extends AbstractMemoryStore {
 				}),
 				manager,
 			);
+			if (!documentWasInserted) {
+				return;
+			}
 
 			for (const [index, chunk] of chunks.entries()) {
 				await this.chunkRepository.store(

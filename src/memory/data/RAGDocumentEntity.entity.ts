@@ -9,6 +9,7 @@ import {
 
 @Entity({ name: 'rag_documents' })
 @Index('IDX_rag_documents_source_reference', ['sourceReference'])
+@Index('UQ_rag_documents_deduplication_key', ['deduplicationKey'], { unique: true })
 export class RAGDocumentEntity {
 	@PrimaryGeneratedColumn('uuid')
 	id!: string;
@@ -21,6 +22,9 @@ export class RAGDocumentEntity {
 
 	@Column({ name: 'content_hash', type: 'varchar', length: 128, nullable: true })
 	contentHash!: string | null;
+
+	@Column({ name: 'deduplication_key', type: 'varchar', length: 64, nullable: true })
+	deduplicationKey!: string | null;
 
 	@Column({ name: 'document_metadata', type: 'jsonb', default: () => "'{}'::jsonb" })
 	documentMetadata!: Record<string, unknown>;
