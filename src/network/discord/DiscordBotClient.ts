@@ -11,6 +11,12 @@ export interface DiscordInboundMessage {
 	channelName: string;
 }
 
+type DiscordMessageSubscriber = {
+	channelId?: string;
+	pending: DiscordInboundMessage[];
+	wake: ((message: DiscordInboundMessage | null) => void) | null;
+};
+
 /**
  * Receives Discord channel messages over the bot gateway.
  * Separate from DiscordWebhookApi: webhooks only post, a bot token plus a
@@ -19,8 +25,25 @@ export interface DiscordInboundMessage {
 export class DiscordBotClient {
 	private readonly token: string;
 	private readonly client: Client;
-	private wake: ((message: DiscordInboundMessage | null) => void) | null = null;
+	private readonly subscribers = new Set<DiscordMessageSubscriber>();
+	private loginPromise: Promise<string> | null = null;
 	private stopped = false;
+	private readonly dispatchMessage = (message: Message): void => {
+		if (message.author.bot) return;
+
+		const inbound = toInbound(message);
+		for (const subscriber of this.subscribers) {
+			if (subscriber.channelId && message.channelId !== subscriber.channelId) continue;
+
+			if (subscriber.wake) {
+				const resolve = subscriber.wake;
+				subscriber.wake = null;
+				resolve(inbound);
+			} else {
+				subscriber.pending.push(inbound);
+			}
+		}
+	};
 
 	constructor(token = process.env.DISCORD_BOT_TOKEN) {
 		if (!token) {
@@ -35,6 +58,7 @@ export class DiscordBotClient {
 				GatewayIntentBits.MessageContent,
 			],
 		});
+		this.client.on('messageCreate', this.dispatchMessage);
 
 		this.client.on('error', (error) => {
 			logger.error('Discord client error', {
@@ -50,11 +74,14 @@ export class DiscordBotClient {
 	stop(): void {
 		this.stopped = true;
 		this.client.destroy();
-		if (this.wake) {
-			const resolve = this.wake;
-			this.wake = null;
-			resolve(null);
+		for (const subscriber of this.subscribers) {
+			if (subscriber.wake) {
+				const resolve = subscriber.wake;
+				subscriber.wake = null;
+				resolve(null);
+			}
 		}
+		if (this.subscribers.size === 0) this.loginPromise = null;
 	}
 
 	/**
@@ -65,36 +92,20 @@ export class DiscordBotClient {
 	 * the bot can see.
 	 */
 	async *listen(channelId?: string): AsyncGenerator<DiscordInboundMessage> {
-		const pending: DiscordInboundMessage[] = [];
-		this.stopped = false;
-		this.wake = null;
+		if (this.stopped && this.subscribers.size === 0) this.stopped = false;
+		if (this.stopped) return;
 
-		const onMessage = (message: Message) => {
-			if (message.author.bot) return;
-			if (channelId && message.channelId !== channelId) return;
-
-			const inbound = toInbound(message);
-			if (this.wake) {
-				const resolve = this.wake;
-				this.wake = null;
-				resolve(inbound);
-			} else {
-				pending.push(inbound);
-			}
-		};
-
-		this.client.on('messageCreate', onMessage);
+		const subscriber: DiscordMessageSubscriber = { channelId, pending: [], wake: null };
+		this.subscribers.add(subscriber);
 
 		try {
-			if (this.stopped) return;
-			await this.client.login(this.token);
+			await this.connect();
 			while (!this.stopped) {
-				if (this.stopped) return;
-				const queued = pending.shift();
+				const queued = subscriber.pending.shift();
 				const next =
 					queued ??
 					(await new Promise<DiscordInboundMessage | null>((resolve) => {
-						this.wake = resolve;
+						subscriber.wake = resolve;
 					}));
 				if (next === null) return;
 				yield next;
@@ -102,9 +113,27 @@ export class DiscordBotClient {
 		} catch (error) {
 			throw asDomainError(error, ErrorCode.NETWORK_ERROR, 'Discord bot gateway failed');
 		} finally {
-			this.client.off('messageCreate', onMessage);
-			this.client.destroy();
+			this.subscribers.delete(subscriber);
+			if (subscriber.wake) {
+				const resolve = subscriber.wake;
+				subscriber.wake = null;
+				resolve(null);
+			}
+			if (this.subscribers.size === 0) {
+				this.client.destroy();
+				this.loginPromise = null;
+			}
 		}
+	}
+
+	private connect(): Promise<string> {
+		if (!this.loginPromise) {
+			this.loginPromise = this.client.login(this.token).catch((error: unknown) => {
+				this.loginPromise = null;
+				throw error;
+			});
+		}
+		return this.loginPromise;
 	}
 }
 

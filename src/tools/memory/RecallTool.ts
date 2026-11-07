@@ -8,13 +8,14 @@ const SUPPORTED_MEMORY_TYPES = [
 	MEMORY_TYPE.PREFERENCE,
 	MEMORY_TYPE.SESSION_SUMMARY,
 ] as const;
-const MEMORY_FRAGMENT_TYPE_SCHEMA = z.enum([MEMORY_TYPE.FACT, ...SUPPORTED_MEMORY_TYPES]);
+const RECALLABLE_MEMORY_TYPES = [MEMORY_TYPE.FACT, ...SUPPORTED_MEMORY_TYPES] as const;
+const MEMORY_FRAGMENT_TYPE_SCHEMA = z.enum(RECALLABLE_MEMORY_TYPES);
 
 export const RecallToolInputSchema = z.object({
 	query: z.string().describe('What the agent needs to recall'),
 	recentContext: z.string().optional(),
 	activeGoal: z.string().optional(),
-	types: z.array(z.enum(SUPPORTED_MEMORY_TYPES)).optional(),
+	types: z.array(z.enum(RECALLABLE_MEMORY_TYPES)).optional(),
 });
 
 export const RecallToolOutputSchema = z.array(
@@ -36,7 +37,7 @@ export class RecallTool extends AgentTool<
 		super({
 			name: 'recall',
 			description:
-				'Retrieve stored decisions, preferences, or session summaries relevant to the current task.',
+				'Retrieve indexed fact chunks, decisions, preferences, or session summaries relevant to the current task.',
 			inputSchema: RecallToolInputSchema,
 			outputSchema: RecallToolOutputSchema,
 		});

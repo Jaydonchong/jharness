@@ -1,7 +1,7 @@
 import { AGcalSummarizer } from '../agent/agentConfig/GcalSummarizer';
 import { AgentSession } from '../harness/AgentSession';
 import { Harness } from '../harness/Harness';
-import { DiscordBotClient } from '../network/discord/DiscordBotClient';
+import { DiscordBotClient, type DiscordInboundMessage } from '../network/discord/DiscordBotClient';
 import { DiscordWebhookApi } from '../network/discord/DiscordWebhookApi';
 import { ILlmProvider } from '../providers/Interfaces';
 import { AbstractService } from './AbstractService';
@@ -29,23 +29,30 @@ export class DiscordProductivityAssistantService<TModelType> extends AbstractSer
 
 	public async run(): Promise<void> {
 		for await (const msg of this.deps.discordBotClient.listen(process.env.DISCORD_SERVER_ID)) {
-			if (msg.content == 'stop') {
+			if (await this.handleMessage(msg)) {
 				break;
 			}
-
-			if (msg.content == '/compact') {
-				await this.session.compactConversation();
-				continue;
-			}
-
-			if (msg.authorId == process.env.DISCORD_ACCOUNT_ID) {
-				await this.deps.discordWebhookApi.sendMessage(
-					'**Bot**: Message received, processing...',
-				);
-				const response = await this.session.sendMessage(msg.content);
-				await this.deps.discordWebhookApi.sendMessage(response.reply);
-			}
 		}
-		return;
+	}
+
+	public async handleMessage(msg: DiscordInboundMessage): Promise<boolean> {
+		if (msg.content === 'stop') {
+			return true;
+		}
+
+		if (msg.content === '/compact') {
+			await this.session.compactConversation();
+			return false;
+		}
+
+		// if (msg.authorId === process.env.DISCORD_ACCOUNT_ID) {
+		// 	await this.deps.discordWebhookApi.sendMessage(
+		// 		'**Bot**: Message received, processing...',
+		// 	);
+		// 	const response = await this.session.sendMessage(msg.content);
+		// 	await this.deps.discordWebhookApi.sendMessage(response.reply);
+		// }
+
+		return false;
 	}
 }

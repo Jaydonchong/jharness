@@ -51,7 +51,7 @@ export class RAGChunkRepository {
 			.setParameter('vector', vector);
 		this.applyRetrievalFilters(query, filters);
 
-		const entities = await query.take(limit).getMany();
+		const entities = await query.limit(limit).getMany();
 
 		return entities.map(RAGChunk.fromEntity);
 	}

@@ -7,8 +7,10 @@ import { WebSearchTool } from './tools/webSearch/WebSearchTool';
 import { Harness } from './harness/Harness';
 import { DiscordWebhookApi } from './network/discord/DiscordWebhookApi';
 import { AGeneral } from './agent/agentConfig/General';
+import { ASystemDesign } from './agent/agentConfig/SystemDesign';
 import { DiscordBotClient } from './network/discord/DiscordBotClient';
 import { DiscordProductivityAssistantService } from './service/DiscordProductivityAssistantService';
+import { SystemDesignDiscordService } from './service/SystemDesignDiscordService';
 import { AGcalSummarizer } from './agent/agentConfig/GcalSummarizer';
 import { CompactionPipeline } from './compaction/core/CompactionPipeline';
 import { ModelSummarizer } from './compaction/handlers/ModelSummarizerHandler.ts';
@@ -114,8 +116,16 @@ void (async () => {
 	// console.log(`Assistant: ${response}`);
 	// await discordApi.sendMessage(response)
 
-	const discordProductivityAssistantService = new DiscordProductivityAssistantService({
+	const productivityService = new DiscordProductivityAssistantService({
 		gcalSummarizerAgent,
+		harness,
+		llmProvider: vercelSDK,
+		model: VERCEL_AI_MODELS.DEFAULT,
+		discordBotClient,
+		discordWebhookApi,
+	});
+	const systemDesignService = new SystemDesignDiscordService({
+		systemDesignAgent: new ASystemDesign(memoryTools[1]),
 		harness,
 		llmProvider: vercelSDK,
 		model: VERCEL_AI_MODELS.DEFAULT,
@@ -134,7 +144,7 @@ void (async () => {
 	// }
 	// process.stdout.write("\n");
 
-	await Promise.all([discordProductivityAssistantService.run()]);
+	await Promise.all([productivityService.run(), systemDesignService.run()]);
 
 	await harness.close();
 	console.info('====COMPLETED====');
