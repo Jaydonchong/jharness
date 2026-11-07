@@ -38,7 +38,7 @@ export class CloudflareReranker extends AbstractRerankingModel<CloudflareReranke
 		if (!accountId || !apiToken) {
 			throw new DomainError(
 				ErrorCode.AI_PROVIDER_CONFIGURATION_ERROR,
-				'Cloudflare reranking requires CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_AUTH_TOKEN.',
+				'Cloudflare reranking requires CLOUDFLARE_AI_WORKER_ACCOUNT_ID and CLOUDFLARE_AI_WORKER_API_TOKEN.',
 			);
 		}
 

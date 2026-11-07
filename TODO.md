@@ -7,6 +7,7 @@
     - [] Dynamic Tool
     - [] Provider Defined Tool
     - [] Skill Upload
+    - [] Deferred Tool calling
 - [x] State Preservatioon
     - [x] Session ID tracking
     - [x] Session Logs
@@ -30,3 +31,4 @@
     - [] Permission Gates
 - [] Additional
     - [] Multimedia Support
+    - [] Checkpointing https://blog.n8n.io/agentic-rag/
