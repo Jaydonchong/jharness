@@ -55,7 +55,10 @@ async function indexMarkdownFolder(): Promise<void> {
 				content: await readFile(filePath, 'utf8'),
 				tags: [],
 				origin: 'user',
-				additionalContext: { sourcePath: filePath },
+				additionalContext: {
+					title: path.basename(filePath),
+					source_references: [filePath],
+				},
 			};
 			await memoryStore.store(fragment);
 			console.log(`Indexed ${index + 1}/${markdownFiles.length}: ${filePath}`);

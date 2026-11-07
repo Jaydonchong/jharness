@@ -87,13 +87,26 @@ export class PGChunkMemoryStore extends AbstractMemoryStore {
 				EMBEDDING_MODEL,
 			)
 		).map((embedding) => this.normalizeEmbedding(embedding));
+		const additionalContext = memory.additionalContext;
+		const title = typeof additionalContext?.title === 'string' ? additionalContext.title : null;
+		const sourceReferences = additionalContext?.source_references;
+		const sourceReference =
+			typeof sourceReferences === 'string'
+				? sourceReferences
+				: Array.isArray(sourceReferences)
+					? (sourceReferences.find(
+							(reference): reference is string => typeof reference === 'string',
+						) ?? null)
+					: typeof additionalContext?.sourcePath === 'string'
+						? additionalContext.sourcePath
+						: null;
 
 		await AppDataSource.transaction(async (manager) => {
 			const documentWasInserted = await this.documentRepository.storeIfNotExists(
 				new RAGDocument({
 					id: documentId,
-					sourceReference: null,
-					title: null,
+					sourceReference,
+					title,
 					contentHash,
 					deduplicationKey,
 					documentMetadata: {
