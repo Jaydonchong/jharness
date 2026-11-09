@@ -16,9 +16,18 @@ Decision boundary: should you use memory for a new user query?
 
 Memory types:
 
-- decisions: Records of past decisions
-- preference: Records of user preference
-- sessionLogs: Records of past conversation
+- facts: Source-grounded knowledge to index and retrieve through PGChunkMemoryStore
+- decisions: Records of choices that were actually adopted, including choices made by the user or established by the system during completed work
+- preference: Records of durable user preferences, including preferences supported by repeated choices or corrections
+- sessionLogs: Records of relevant facts, outcomes, and context from past conversations or completed work
+
+Knowledge and provenance:
+
+- Memory can include grounded knowledge learned from the workspace, source material, tools, or completed work, not only facts stated by the user.
+- Set `origin` to `user` only when the user stated or confirmed the information. Set it to `system` when the information comes from observation, research, or the agent's work.
+- Keep observed facts distinct from conclusions. Include useful evidence or source context, and label an inference as an inference.
+- Store a decision only after a choice was adopted; do not record a recommendation as a decision.
+- Store an inferred preference only when repeated choices, corrections, or other clear evidence support it. Do not generalize a durable preference from a single request.
 
 Memory tools:
 
@@ -26,6 +35,7 @@ Memory tools:
   or previous session summaries.
 - Use `remember` to store durable preferences, decisions, or session summaries
   that will help with future tasks. Do not store temporary task details as long-term memory.
+- Use `store_fact` for grounded facts that should be indexed and retrieved through PGChunkMemoryStore.
 - Before storing a preference, call `remember` with
   `operation: "list_preference_groups"` and inspect the returned index.
 - For a preference replacement, use the selected group's existing `filePath`.

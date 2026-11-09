@@ -5,6 +5,7 @@ import { DomainError, ErrorCode } from '../../utils/ErrorCode';
 import { AgentTool, AgentToolExecutionContext } from '../core/AgentTool';
 
 const SUPPORTED_MEMORY_TYPES = [
+	MEMORY_TYPE.FACT,
 	MEMORY_TYPE.DECISION,
 	MEMORY_TYPE.PREFERENCE,
 	MEMORY_TYPE.SESSION_SUMMARY,
@@ -18,6 +19,10 @@ const CommonMemoryFields = {
 
 export const RememberToolInputSchema = z.discriminatedUnion('operation', [
 	z.object({ operation: z.literal('list_preference_groups') }),
+	z.object({
+		operation: z.literal('store_fact'),
+		...CommonMemoryFields,
+	}),
 	z.object({
 		operation: z.literal('store_preference'),
 		...CommonMemoryFields,
@@ -74,7 +79,7 @@ export class RememberTool extends AgentTool<
 		super({
 			name: 'remember',
 			description:
-				'Store decisions, preferences, and session summaries. Before storing a preference, list the preference groups and select a group and file path from the returned index.',
+				'Store facts, decisions, preferences, and session summaries. Facts are indexed in PGChunkMemoryStore. Before storing a preference, list the preference groups and select a group and file path from the returned index.',
 			inputSchema: RememberToolInputSchema,
 			outputSchema: RememberToolOutputSchema,
 		});
@@ -92,6 +97,16 @@ export class RememberTool extends AgentTool<
 		let memory: MemoryFragment;
 		let storedType: (typeof SUPPORTED_MEMORY_TYPES)[number];
 		switch (input.operation) {
+			case 'store_fact':
+				storedType = MEMORY_TYPE.FACT;
+				memory = {
+					created: new Date(),
+					type: MEMORY_TYPE.FACT,
+					content: input.content,
+					tags: input.tags,
+					origin: input.origin,
+				};
+				break;
 			case 'store_preference':
 				storedType = MEMORY_TYPE.PREFERENCE;
 				memory = {
