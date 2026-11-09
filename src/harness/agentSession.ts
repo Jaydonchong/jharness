@@ -10,6 +10,7 @@ import type { AgentConversationCompactor } from '../agent/core/AgentConversation
 import { AgentLoop } from '../agent/core/AgentLoop';
 import type { AgentTurnStrategy, ISessionResult } from '../agent/core/AgentLoop';
 import { ILlmProvider } from '../providers/Interfaces';
+import { getTracer } from '../telemetry/Telemetry';
 
 export type TSessionMessageContent =
 	| string
@@ -65,6 +66,8 @@ export class AgentSession<TModelType> {
 	private readonly streamStrategy: AgentTurnStrategy<TModelType, string>;
 	private readonly toolInvoker: ToolInvoker;
 	private readonly agentLoop: AgentLoop<TModelType>;
+
+	private readonly agentLoopTracer = getTracer('agent-loop');
 
 	constructor(private readonly props: AgentSessionProps<TModelType>) {
 		const llmProvider = this.llmProvider;
@@ -212,12 +215,16 @@ export class AgentSession<TModelType> {
 	}
 
 	public async sendMessage(message: string): Promise<ISessionResult> {
-		const turn = this.runTurn(message, this.generateStrategy);
-		let result = await turn.next();
-		while (!result.done) {
-			result = await turn.next();
-		}
-		return result.value;
+		return this.agentLoopTracer.startActiveSpan('agent.turn', async (span) => {
+			const turn = this.runTurn(message, this.generateStrategy);
+			let result = await turn.next();
+
+			while (!result.done) {
+				result = await turn.next();
+			}
+
+			return result.value;
+		});
 	}
 
 	public async *streamMessage(message: string): AsyncGenerator<string> {

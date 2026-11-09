@@ -18,6 +18,8 @@ type SystemDesignDiscordServiceDeps<TModelType> = {
 export class SystemDesignDiscordService<TModelType> extends AbstractService {
 	private readonly session: AgentSession<TModelType>;
 
+	private readonly tracer = this.getTracer('discord-system-design');
+
 	constructor(private readonly deps: SystemDesignDiscordServiceDeps<TModelType>) {
 		super();
 		this.session = this.deps.harness.newSession({
@@ -38,18 +40,24 @@ export class SystemDesignDiscordService<TModelType> extends AbstractService {
 	}
 
 	public async handleMessage(message: DiscordInboundMessage): Promise<boolean> {
-		if (message.content.trim() === 'stop') {
-			return true;
-		}
+		return this.tracer.startActiveSpan(`request.incoming`, async (span) => {
+			if (message.content.trim() === 'stop') {
+				span.setAttribute('action', 'stop');
+				return true;
+			}
 
-		if (message.content.trim() === '/compact') {
-			await this.session.compactConversation();
-			await this.deps.discordWebhookApi.sendMessage('System design conversation compacted.');
+			if (message.content.trim() === '/compact') {
+				span.setAttribute('action', 'compact');
+				await this.session.compactConversation();
+				await this.deps.discordWebhookApi.sendMessage(
+					'System design conversation compacted.',
+				);
+				return false;
+			}
+			span.setAttribute('action', 'message');
+			const response = await this.session.sendMessage(message.content);
+			await this.deps.discordWebhookApi.sendMessage(response.reply);
 			return false;
-		}
-
-		const response = await this.session.sendMessage(message.content);
-		await this.deps.discordWebhookApi.sendMessage(response.reply);
-		return false;
+		});
 	}
 }

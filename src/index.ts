@@ -33,6 +33,7 @@ import { VERCEL_AI_MODELS, VercelSDK } from './providers/VercelSDK';
 import { CloudflareReranker } from './network/rerankingModel/CloudflareReranker';
 import { AppDataSource } from './database/data-source';
 import logger from './utils/Logger';
+import { OTLPsdk } from './telemetry/instrumentation';
 
 void (async () => {
 	const dataSource = await AppDataSource.initialize();
@@ -148,6 +149,7 @@ void (async () => {
 
 	await harness.close();
 	console.info('====COMPLETED====');
+	await OTLPsdk.shutdown();
 	process.exit(0);
 })().catch((error) => {
 	console.log(
