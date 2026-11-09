@@ -1,4 +1,38 @@
 services:
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        init: true
+        restart: unless-stopped
+        env_file:
+            - .env
+        environment:
+            POSTGRES_HOST: postgres
+            POSTGRES_PORT: 5432
+            OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-jharness}
+            OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+            OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+            GOOGLE_GCAL_CREDENTIALS_PATH: /run/credentials/google-gcal.json
+            OLLAMA_BASE_URL: http://host.docker.internal:11434
+        volumes:
+            - type: bind
+              source: ${MEMORY_FOLDER_FS_PATH:?Set MEMORY_FOLDER_FS_PATH in .env}
+              target: ${MEMORY_FOLDER_FS_PATH:?Set MEMORY_FOLDER_FS_PATH in .env}
+            - type: bind
+              source: ${SESSION_LOG_FS_PATH:?Set SESSION_LOG_FS_PATH in .env}
+              target: ${SESSION_LOG_FS_PATH:?Set SESSION_LOG_FS_PATH in .env}
+            - type: bind
+              source: ${GOOGLE_GCAL_CREDENTIALS_PATH:?Set GOOGLE_GCAL_CREDENTIALS_PATH in .env}
+              target: /run/credentials/google-gcal.json
+              read_only: true
+        depends_on:
+            postgres:
+                condition: service_healthy
+        networks:
+            - default
+            - telemetry
+
     postgres:
         image: pgvector/pgvector:pg17
         restart: unless-stopped
@@ -19,3 +53,8 @@ services:
 
 volumes:
     postgres_data:
+
+networks:
+    telemetry:
+        name: telemetry
+        external: true
