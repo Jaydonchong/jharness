@@ -2,7 +2,7 @@ import { AbstractAgentConfig } from '../../agent/agentConfig/AbstractAgentConfig
 import { ModelConversationMessage } from '../../agent/agentConfig/Interfaces';
 import { ILlmToolCall } from '../../providers/Interfaces';
 import { AgentToolExecutionContext } from './AgentTool';
-import { getTracer } from '../../telemetry/Telemetry';
+import { getMeter, getTracer } from '../../telemetry/Telemetry';
 
 const DEFAULT_MAX_RETRIES = 3;
 
@@ -23,6 +23,15 @@ export type ToolInvokerOptions = {
 export class ToolInvoker {
 	private readonly maxRetries: number;
 	private readonly tracer = getTracer('tool-invoker');
+	private readonly meter = getMeter('tool-invoker');
+	private readonly toolCallCounter = this.meter.createCounter('tool.call.count', {
+		description: 'Number of logical tool call attempts',
+		unit: '{call}',
+	});
+	private readonly toolCallDuration = this.meter.createHistogram('tool.call.duration', {
+		description: 'Duration of logical tool calls, including retries',
+		unit: 's',
+	});
 
 	constructor(
 		private readonly agent: AbstractAgentConfig,
@@ -38,30 +47,45 @@ export class ToolInvoker {
 
 		for (const toolCall of toolCalls) {
 			this.logToolCall(toolCall);
-			const result = await this.tracer.startActiveSpan('tool.invoke', async (span) => {
-				span.setAttribute('tool.name', toolCall.name);
-				span.setAttribute('tool.retry_count', 0);
-				const tool = this.agent.getTool(toolCall.name);
-				let retries = 0;
+			const startedAt = performance.now();
+			let outcome: 'success' | 'error' = 'success';
+			let result: unknown;
+			try {
+				result = await this.tracer.startActiveSpan('tool.invoke', async (span) => {
+					span.setAttribute('tool.name', toolCall.name);
+					span.setAttribute('tool.retry_count', 0);
+					const tool = this.agent.getTool(toolCall.name);
+					let retries = 0;
 
-				while (true) {
-					try {
-						const output = await tool.useTool(toolCall.input, this.context);
-						this.logToolResult(toolCall, output);
-						return output;
-					} catch (error) {
-						if (
-							retries >= this.maxRetries ||
-							!this.options.shouldRetry?.(error, toolCall)
-						) {
-							throw error;
+					while (true) {
+						try {
+							const output = await tool.useTool(toolCall.input, this.context);
+							this.logToolResult(toolCall, output);
+							return output;
+						} catch (error) {
+							if (
+								retries >= this.maxRetries ||
+								!this.options.shouldRetry?.(error, toolCall)
+							) {
+								throw error;
+							}
+
+							retries++;
+							span.setAttribute('tool.retry_count', retries);
 						}
-
-						retries++;
-						span.setAttribute('tool.retry_count', retries);
 					}
-				}
-			});
+				});
+			} catch (error) {
+				outcome = 'error';
+				throw error;
+			} finally {
+				const toolName = this.agent.toolRegistry.has(toolCall.name)
+					? toolCall.name
+					: 'unknown';
+				const attributes = { 'tool.name': toolName, 'tool.outcome': outcome };
+				this.toolCallCounter.add(1, attributes);
+				this.toolCallDuration.record((performance.now() - startedAt) / 1000, attributes);
+			}
 
 			toolCallResults.push({
 				type: 'tool-result',

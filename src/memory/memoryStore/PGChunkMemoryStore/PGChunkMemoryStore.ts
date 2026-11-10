@@ -20,6 +20,7 @@ import {
 import { RAGChunk } from '../../model/RAGChunk';
 import { RAGDocument } from '../../model/RAGDocument';
 import { AbstractMemoryStore } from '../AbstractMemoryStore';
+import { getMeter } from '../../../telemetry/Telemetry';
 
 const CHUNK_SIZE_LIMIT = 1000;
 const CHUNK_OVERLAP = 100;
@@ -33,6 +34,15 @@ const RRF_K = 60;
 export class PGChunkMemoryStore extends AbstractMemoryStore {
 	private readonly chunker = new TextChunker();
 	private readonly embedder = new OllamaEmbedder({});
+	private readonly meter = getMeter('rag-pg-chunk-store');
+	private readonly operationCounter = this.meter.createCounter('rag.operation.count', {
+		description: 'Number of RAG operations by stage',
+		unit: '{operation}',
+	});
+	private readonly operationDuration = this.meter.createHistogram('rag.operation.duration', {
+		description: 'Duration of RAG operations by stage',
+		unit: 's',
+	});
 
 	public constructor(
 		private readonly documentRepository: RAGDocumentRepository,
@@ -43,6 +53,10 @@ export class PGChunkMemoryStore extends AbstractMemoryStore {
 	}
 
 	public async store(memory: MemoryFragment): Promise<void> {
+		return this.measureOperation('store', () => this.storeMemory(memory));
+	}
+
+	private async storeMemory(memory: MemoryFragment): Promise<void> {
 		const now = new Date();
 		const documentId = randomUUID();
 		const contentHash = createHash('sha256').update(memory.content).digest('hex');
@@ -152,38 +166,42 @@ export class PGChunkMemoryStore extends AbstractMemoryStore {
 	}
 
 	public async retrieve(context: MemoryRetrievalContext): Promise<Partial<MemoryFragment[]>> {
-		const [semanticChunks, lexicalChunks] = await Promise.all([
-			this.retrieveSemanticChunks(context),
-			this.retrieveLexicalChunks(context),
-		]);
+		return this.measureOperation('retrieve', async () => {
+			const [semanticChunks, lexicalChunks] = await Promise.all([
+				this.retrieveSemanticChunks(context),
+				this.retrieveLexicalChunks(context),
+			]);
 
-		// TODO: Query Transformaation
+			// TODO: Query Transformaation
 
-		const fusedChunks = this.reciprocalRankFusion(semanticChunks, lexicalChunks);
-		const rerankedChunks = await this.reranker.rerank(
-			context.context.query,
-			fusedChunks.map(({ content }) => content),
-			CloudflareRerankerModel.BGE_RERANKER_BASE,
-		);
-		const chunks = rerankedChunks.map(({ index }) => fusedChunks[index]);
+			const fusedChunks = this.reciprocalRankFusion(semanticChunks, lexicalChunks);
+			const rerankedChunks = await this.measureOperation('rerank', () =>
+				this.reranker.rerank(
+					context.context.query,
+					fusedChunks.map(({ content }) => content),
+					CloudflareRerankerModel.BGE_RERANKER_BASE,
+				),
+			);
+			const chunks = rerankedChunks.map(({ index }) => fusedChunks[index]);
 
-		// Return top 5 chunks
-		const resultLength =
-			chunks.length > DEFAULT_RETRIEVAL_RESULT_LIMIT
-				? DEFAULT_RETRIEVAL_RESULT_LIMIT
-				: chunks.length;
-		const resultSet = chunks.slice(0, resultLength).map(toMemoryFragment);
+			// Return top 5 chunks
+			const resultLength =
+				chunks.length > DEFAULT_RETRIEVAL_RESULT_LIMIT
+					? DEFAULT_RETRIEVAL_RESULT_LIMIT
+					: chunks.length;
+			const resultSet = chunks.slice(0, resultLength).map(toMemoryFragment);
 
-		// TODO:
-
-		return resultSet;
+			return resultSet;
+		});
 	}
 
 	private async retrieveSemanticChunks(context: MemoryRetrievalContext): Promise<RAGChunk[]> {
-		const [queryEmbedding] = await this.embedder.embed(
-			[context.context.query],
-			EmbeddingPurpose.RETRIEVAL,
-			OllamaEmbeddingModel.EMBEDDINGGEMMA_2_270M,
+		const [queryEmbedding] = await this.measureOperation('query_embedding', () =>
+			this.embedder.embed(
+				[context.context.query],
+				EmbeddingPurpose.RETRIEVAL,
+				OllamaEmbeddingModel.EMBEDDINGGEMMA_2_270M,
+			),
 		);
 		const normalizedQueryEmbedding = this.normalizeEmbedding(queryEmbedding);
 		const searchArguments = [
@@ -192,15 +210,43 @@ export class PGChunkMemoryStore extends AbstractMemoryStore {
 			context.limit ?? DEFAULT_CHUNK_RETRIEVAL_LIMIT,
 			context.filters,
 		] as const;
-		return this.chunkRepository.findDotProductSimilar(...searchArguments);
+		return this.measureOperation('semantic_search', () =>
+			this.chunkRepository.findDotProductSimilar(...searchArguments),
+		);
 	}
 
 	private async retrieveLexicalChunks(context: MemoryRetrievalContext): Promise<RAGChunk[]> {
-		return this.chunkRepository.findLexical(
-			context.context.query,
-			context.limit ?? DEFAULT_CHUNK_RETRIEVAL_LIMIT,
-			context.filters,
+		return this.measureOperation('lexical_search', () =>
+			this.chunkRepository.findLexical(
+				context.context.query,
+				context.limit ?? DEFAULT_CHUNK_RETRIEVAL_LIMIT,
+				context.filters,
+			),
 		);
+	}
+
+	private async measureOperation<T>(
+		operation:
+			| 'store'
+			| 'retrieve'
+			| 'query_embedding'
+			| 'semantic_search'
+			| 'lexical_search'
+			| 'rerank',
+		callback: () => Promise<T>,
+	): Promise<T> {
+		const startedAt = performance.now();
+		let outcome: 'success' | 'error' = 'success';
+		try {
+			return await callback();
+		} catch (error) {
+			outcome = 'error';
+			throw error;
+		} finally {
+			const attributes = { 'rag.operation': operation, 'rag.outcome': outcome };
+			this.operationCounter.add(1, attributes);
+			this.operationDuration.record((performance.now() - startedAt) / 1000, attributes);
+		}
 	}
 
 	private reciprocalRankFusion(
