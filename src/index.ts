@@ -4,7 +4,7 @@ import { OpenSerpSearchAdapter } from './network/webSearch/OpenSerpSearchAdapter
 import { MOCK_NEWS } from './utils/MockData';
 import { GcalGetCalendarEventsTool } from './tools/gcal/GcalTools';
 import { WebSearchTool } from './tools/webSearch/WebSearchTool';
-import { Harness } from './harness/Harness';
+import { Harness } from './harness/core/Harness';
 import { DiscordWebhookApi } from './network/discord/DiscordWebhookApi';
 import { AGeneral } from './agent/agentConfig/General';
 import { ASystemDesign } from './agent/agentConfig/SystemDesign';

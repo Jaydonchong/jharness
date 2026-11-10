@@ -6,7 +6,7 @@ import {
 	LlmTextStopReason,
 } from '../../providers/Interfaces';
 import { AgentConversation } from './AgentConversation';
-import type { InterruptionDetails } from '../../harness/SessionState';
+import type { InterruptionDetails } from '../../harness/core/SessionState';
 import { getTracer } from '../../telemetry/Telemetry';
 
 export interface ISessionResult {

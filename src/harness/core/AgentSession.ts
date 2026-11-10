@@ -1,16 +1,16 @@
-import { AbstractAgentConfig } from '../agent/agentConfig/AbstractAgentConfig';
-import { ModelConversationMessage } from '../agent/agentConfig/Interfaces';
-import { ToolInvoker } from '../tools/core/ToolInvoker';
-import type { IToolInvocationLogger } from '../tools/core/ToolInvoker';
-import logger from '../utils/Logger';
-import { DomainError, ErrorCode } from '../utils/ErrorCode';
+import { AbstractAgentConfig } from '../../agent/agentConfig/AbstractAgentConfig';
+import { ModelConversationMessage } from '../../agent/agentConfig/Interfaces';
+import { ToolInvoker } from '../../tools/core/ToolInvoker';
+import type { IToolInvocationLogger } from '../../tools/core/ToolInvoker';
+import logger from '../../utils/Logger';
+import { DomainError, ErrorCode } from '../../utils/ErrorCode';
 import { SessionState, SessionStatus, type InterruptionDetails } from './SessionState';
-import { AgentConversation } from '../agent/core/AgentConversation';
-import type { AgentConversationCompactor } from '../agent/core/AgentConversation';
-import { AgentLoop } from '../agent/core/AgentLoop';
-import type { AgentTurnStrategy, ISessionResult } from '../agent/core/AgentLoop';
-import { ILlmProvider } from '../providers/Interfaces';
-import { getTracer } from '../telemetry/Telemetry';
+import { AgentConversation } from '../../agent/core/AgentConversation';
+import type { AgentConversationCompactor } from '../../agent/core/AgentConversation';
+import { AgentLoop } from '../../agent/core/AgentLoop';
+import type { AgentTurnStrategy, ISessionResult } from '../../agent/core/AgentLoop';
+import { ILlmProvider } from '../../providers/Interfaces';
+import { getTracer } from '../../telemetry/Telemetry';
 
 export type TSessionMessageContent =
 	| string
@@ -55,7 +55,7 @@ export type AgentSessionEventContext = {
 	output?: unknown;
 };
 
-export type { ISessionResult } from '../agent/core/AgentLoop';
+export type { ISessionResult } from '../../agent/core/AgentLoop';
 
 export type { InterruptionDetails as InterruptedStreamAttempt } from './SessionState';
 

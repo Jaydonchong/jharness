@@ -1,5 +1,5 @@
-import { AgentSession } from '../harness/AgentSession';
-import { Harness } from '../harness/Harness';
+import { AgentSession } from '../harness/core/AgentSession';
+import { Harness } from '../harness/core/Harness';
 import { DiscordBotClient, type DiscordInboundMessage } from '../network/discord/DiscordBotClient';
 import { DiscordWebhookApi } from '../network/discord/DiscordWebhookApi';
 import { ILlmProvider } from '../providers/Interfaces';
