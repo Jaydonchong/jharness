@@ -18,10 +18,8 @@ type SystemDesignDiscordServiceDeps<TModelType> = {
 export class SystemDesignDiscordService<TModelType> extends AbstractService {
 	private readonly session: AgentSession<TModelType>;
 
-	private readonly tracer = this.getTracer('discord-system-design');
-
 	constructor(private readonly deps: SystemDesignDiscordServiceDeps<TModelType>) {
-		super();
+		super('discord-system-design');
 		this.session = this.deps.harness.newSession({
 			llmProvider: this.deps.llmProvider,
 			agent: this.deps.systemDesignAgent,

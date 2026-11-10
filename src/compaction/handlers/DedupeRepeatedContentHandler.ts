@@ -38,6 +38,8 @@ const isToolResultContent = (value: unknown): value is ToolResultContent =>
 	'output' in value;
 
 export class DedupeRepeatedContent extends AbstractCompactionPipelineNode {
+	public readonly name = 'dedupe-repeated-content';
+
 	public async execute(input: CompactionOutput): Promise<CompactionOutput> {
 		const toolCalls = new Map<string, ToolCallContent>();
 

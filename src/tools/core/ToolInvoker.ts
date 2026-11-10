@@ -2,6 +2,7 @@ import { AbstractAgentConfig } from '../../agent/agentConfig/AbstractAgentConfig
 import { ModelConversationMessage } from '../../agent/agentConfig/Interfaces';
 import { ILlmToolCall } from '../../providers/Interfaces';
 import { AgentToolExecutionContext } from './AgentTool';
+import { getTracer } from '../../telemetry/Telemetry';
 
 const DEFAULT_MAX_RETRIES = 3;
 
@@ -21,6 +22,7 @@ export type ToolInvokerOptions = {
 
 export class ToolInvoker {
 	private readonly maxRetries: number;
+	private readonly tracer = getTracer('tool-invoker');
 
 	constructor(
 		private readonly agent: AbstractAgentConfig,
@@ -36,34 +38,40 @@ export class ToolInvoker {
 
 		for (const toolCall of toolCalls) {
 			this.logToolCall(toolCall);
-			const tool = this.agent.getTool(toolCall.name);
-			let retries = 0;
+			const result = await this.tracer.startActiveSpan('tool.invoke', async (span) => {
+				span.setAttribute('tool.name', toolCall.name);
+				span.setAttribute('tool.retry_count', 0);
+				const tool = this.agent.getTool(toolCall.name);
+				let retries = 0;
 
-			while (true) {
-				try {
-					const result = await tool.useTool(toolCall.input, this.context);
-					this.logToolResult(toolCall, result);
-					toolCallResults.push({
-						type: 'tool-result',
-						toolCallId: toolCall.id,
-						toolName: toolCall.name,
-						output: {
-							type: 'json',
-							value: result,
-						},
-					});
-					break;
-				} catch (error) {
-					if (
-						retries >= this.maxRetries ||
-						!this.options.shouldRetry?.(error, toolCall)
-					) {
-						throw error;
+				while (true) {
+					try {
+						const output = await tool.useTool(toolCall.input, this.context);
+						this.logToolResult(toolCall, output);
+						return output;
+					} catch (error) {
+						if (
+							retries >= this.maxRetries ||
+							!this.options.shouldRetry?.(error, toolCall)
+						) {
+							throw error;
+						}
+
+						retries++;
+						span.setAttribute('tool.retry_count', retries);
 					}
-
-					retries++;
 				}
-			}
+			});
+
+			toolCallResults.push({
+				type: 'tool-result',
+				toolCallId: toolCall.id,
+				toolName: toolCall.name,
+				output: {
+					type: 'json',
+					value: result,
+				},
+			});
 		}
 
 		return {

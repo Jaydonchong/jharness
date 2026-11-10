@@ -9,6 +9,8 @@ type ModelSummarizerConfig<TModelType> = {
 };
 
 export class ModelSummarizer<TModelType> extends AbstractCompactionPipelineNode {
+	public readonly name = 'model-summarizer';
+
 	constructor(private readonly config: ModelSummarizerConfig<TModelType>) {
 		super();
 	}

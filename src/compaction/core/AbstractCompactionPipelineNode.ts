@@ -1,6 +1,8 @@
 import { CompactionOutput } from './Interfaces';
 
 export abstract class AbstractCompactionPipelineNode {
+	public abstract readonly name: string;
+
 	next: AbstractCompactionPipelineNode | null = null;
 
 	public setNext(node: AbstractCompactionPipelineNode) {

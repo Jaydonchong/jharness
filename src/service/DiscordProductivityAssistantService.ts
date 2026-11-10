@@ -19,7 +19,7 @@ export class DiscordProductivityAssistantService<TModelType> extends AbstractSer
 	private readonly session: AgentSession<TModelType>;
 
 	constructor(private readonly deps: IDiscordProductivityAssistantServiceDeps<TModelType>) {
-		super();
+		super('discord-productivity-assistant');
 		this.session = this.deps.harness.newSession({
 			llmProvider: this.deps.llmProvider,
 			agent: this.deps.gcalSummarizerAgent,
@@ -36,23 +36,28 @@ export class DiscordProductivityAssistantService<TModelType> extends AbstractSer
 	}
 
 	public async handleMessage(msg: DiscordInboundMessage): Promise<boolean> {
-		if (msg.content === 'stop') {
-			return true;
-		}
+		return this.tracer.startActiveSpan('request.incoming', async (span) => {
+			if (msg.content === 'stop') {
+				span.setAttribute('action', 'stop');
+				return true;
+			}
 
-		if (msg.content === '/compact') {
-			await this.session.compactConversation();
+			if (msg.content === '/compact') {
+				span.setAttribute('action', 'compact');
+				await this.session.compactConversation();
+				return false;
+			}
+
+			// if (msg.authorId === process.env.DISCORD_ACCOUNT_ID) {
+			// 	await this.deps.discordWebhookApi.sendMessage(
+			// 		'**Bot**: Message received, processing...',
+			// 	);
+			// 	const response = await this.session.sendMessage(msg.content);
+			// 	await this.deps.discordWebhookApi.sendMessage(response.reply);
+			// }
+
+			span.setAttribute('action', 'message');
 			return false;
-		}
-
-		// if (msg.authorId === process.env.DISCORD_ACCOUNT_ID) {
-		// 	await this.deps.discordWebhookApi.sendMessage(
-		// 		'**Bot**: Message received, processing...',
-		// 	);
-		// 	const response = await this.session.sendMessage(msg.content);
-		// 	await this.deps.discordWebhookApi.sendMessage(response.reply);
-		// }
-
-		return false;
+		});
 	}
 }

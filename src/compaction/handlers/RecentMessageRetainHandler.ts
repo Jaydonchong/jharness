@@ -10,6 +10,8 @@ type RecentMessageRetainerHandlerProps = {
  * so the cutoff doesn’t split a tool call from its result.
  */
 export class RecentMessageRetainHandler extends AbstractCompactionPipelineNode {
+	public readonly name = 'recent-message-retain';
+
 	constructor(private readonly config: RecentMessageRetainerHandlerProps) {
 		super();
 	}

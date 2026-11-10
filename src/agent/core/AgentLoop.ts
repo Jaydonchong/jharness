@@ -7,6 +7,7 @@ import {
 } from '../../providers/Interfaces';
 import { AgentConversation } from './AgentConversation';
 import type { InterruptionDetails } from '../../harness/SessionState';
+import { getTracer } from '../../telemetry/Telemetry';
 
 export interface ISessionResult {
 	reply: string;
@@ -34,6 +35,7 @@ export type AgentLoopHooks = {
 export class AgentLoop<TModelType> {
 	private static readonly MAX_LOOP_STEP = 10;
 	private static readonly MAX_RETRY_PER_STEP = 3;
+	private readonly tracer = getTracer('agent-loop');
 
 	constructor(
 		private readonly conversation: AgentConversation,
@@ -106,7 +108,8 @@ export class AgentLoop<TModelType> {
 						this.hooks.onTurnComplete?.(message);
 						return { reply: assistantReply, output: response.output };
 					case LlmTextStopReason.TOOL_CALL:
-						if (!response.toolCalls?.length) {
+						const toolCalls = response.toolCalls;
+						if (!toolCalls?.length) {
 							this.hooks.onSessionError?.(message);
 							throw new DomainError(
 								ErrorCode.AI_PROVIDER_RESPONSE_ERROR,
@@ -114,7 +117,14 @@ export class AgentLoop<TModelType> {
 							);
 						}
 						this.hooks.onToolCall?.(message);
-						this.conversation.append(await this.toolInvoker.invoke(response.toolCalls));
+						const toolResults = await this.tracer.startActiveSpan(
+							'agent.tool_call_batch',
+							async (span) => {
+								span.setAttribute('tool.call_count', toolCalls.length);
+								return this.toolInvoker.invoke(toolCalls);
+							},
+						);
+						this.conversation.append(toolResults);
 						break;
 					default:
 						this.hooks.onWarning?.('Unhandled response', response);
