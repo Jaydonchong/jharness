@@ -10,7 +10,8 @@ import type { AgentConversationCompactor } from '../../agent/core/AgentConversat
 import { AgentLoop } from '../../agent/core/AgentLoop';
 import type { AgentTurnStrategy, ISessionResult } from '../../agent/core/AgentLoop';
 import { ILlmProvider } from '../../providers/Interfaces';
-import { getTracer } from '../../telemetry/Telemetry';
+import { getMeter, getTracer } from '../../telemetry/Telemetry';
+import { Counter, Histogram } from '@opentelemetry/api';
 
 export type TSessionMessageContent =
 	| string
@@ -55,10 +56,6 @@ export type AgentSessionEventContext = {
 	output?: unknown;
 };
 
-export type { ISessionResult } from '../../agent/core/AgentLoop';
-
-export type { InterruptionDetails as InterruptedStreamAttempt } from './SessionState';
-
 export class AgentSession<TModelType> {
 	private readonly conversation = new AgentConversation();
 	private _sessionContext: string | null = null;
@@ -67,7 +64,24 @@ export class AgentSession<TModelType> {
 	private readonly toolInvoker: ToolInvoker;
 	private readonly agentLoop: AgentLoop<TModelType>;
 
-	private readonly agentLoopTracer = getTracer('agent-loop');
+	private readonly agentLoopTracer = getTracer('agent-session');
+	private readonly agentLoopMeter = getMeter('agent-session');
+
+	private readonly agentTurnCounter: Counter = this.agentLoopMeter.createCounter(
+		'agent-session.turns.count',
+		{
+			description: 'Number of agent turn attempts',
+			unit: '1',
+		},
+	);
+
+	private readonly agentTurnDuration: Histogram = this.agentLoopMeter.createHistogram(
+		'agent-session.turn.duration',
+		{
+			description: 'Duration of agent turns',
+			unit: 's',
+		},
+	);
 
 	constructor(private readonly props: AgentSessionProps<TModelType>) {
 		const llmProvider = this.llmProvider;
@@ -218,16 +232,33 @@ export class AgentSession<TModelType> {
 	}
 
 	public async sendMessage(message: string): Promise<ISessionResult> {
-		return this.agentLoopTracer.startActiveSpan('agent.turn', async (span) => {
-			const turn = this.runTurn(message, this.generateStrategy);
-			let result = await turn.next();
+		const attributes = getAgentTelemetryAttributes(this.props.model, this.agent);
+		const spanAttributes = { ...attributes, 'gen_ai.agent.version': this.agent.version };
+		return this.agentLoopTracer.startActiveSpan(
+			'agent-session.turn',
+			async () => {
+				const startedAt = performance.now();
+				try {
+					const turn = this.runTurn(message, this.generateStrategy);
+					let result = await turn.next();
 
-			while (!result.done) {
-				result = await turn.next();
-			}
+					while (!result.done) {
+						result = await turn.next();
+					}
 
-			return result.value;
-		});
+					return result.value;
+				} catch (error) {
+					throw error;
+				} finally {
+					this.agentTurnCounter.add(1, attributes);
+					this.agentTurnDuration.record(
+						(performance.now() - startedAt) / 1000,
+						attributes,
+					);
+				}
+			},
+			{ attributes: spanAttributes },
+		);
 	}
 
 	public async *streamMessage(message: string): AsyncGenerator<string> {
@@ -270,4 +301,27 @@ function getModelName(model: unknown): string {
 		return model.modelId;
 	}
 	return String(model);
+}
+
+function getProviderName(model: unknown): string {
+	if (
+		typeof model === 'object' &&
+		model !== null &&
+		'provider' in model &&
+		typeof model.provider === 'string'
+	) {
+		return model.provider;
+	}
+	if (typeof model === 'string' && model.includes('/')) {
+		return model.split('/', 1)[0];
+	}
+	return 'unknown';
+}
+
+function getAgentTelemetryAttributes(model: unknown, agent: AbstractAgentConfig) {
+	return {
+		'gen_ai.provider.name': getProviderName(model),
+		'gen_ai.agent.name': agent.name,
+		'gen_ai.request.model': getModelName(model),
+	};
 }

@@ -20,6 +20,8 @@ type IAbstractAgentConfigProps = {
 };
 
 export abstract class AbstractAgentConfig {
+	public abstract readonly name: string;
+	public abstract readonly version: string;
 	public toolRegistry: Map<string, AgentTool<z.ZodType, z.ZodType>> = new Map();
 
 	constructor(private readonly props: IAbstractAgentConfigProps) {

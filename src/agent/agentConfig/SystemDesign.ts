@@ -16,6 +16,9 @@ Keep each final answer under 1,800 markdown characters.
 `;
 
 export class ASystemDesign extends AbstractAgentConfig {
+	public readonly name = 'system-design';
+	public readonly version = '1.0.0';
+
 	constructor(recallTool: RecallTool) {
 		super({
 			systemPrompt: SYSTEM_PROMPT,

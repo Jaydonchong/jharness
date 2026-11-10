@@ -28,11 +28,11 @@ export class DiscordProductivityAssistantService<TModelType> extends AbstractSer
 	}
 
 	public async run(): Promise<void> {
-		for await (const msg of this.deps.discordBotClient.listen(process.env.DISCORD_SERVER_ID)) {
-			if (await this.handleMessage(msg)) {
-				break;
-			}
-		}
+		// for await (const msg of this.deps.discordBotClient.listen(process.env.DISCORD_SERVER_ID)) {
+		// 	if (await this.handleMessage(msg)) {
+		// 		break;
+		// 	}
+		// }
 	}
 
 	public async handleMessage(msg: DiscordInboundMessage): Promise<boolean> {
@@ -55,13 +55,13 @@ export class DiscordProductivityAssistantService<TModelType> extends AbstractSer
 				return false;
 			}
 
-			// if (msg.authorId === process.env.DISCORD_ACCOUNT_ID) {
-			// 	await this.deps.discordWebhookApi.sendMessage(
-			// 		'**Bot**: Message received, processing...',
-			// 	);
-			// 	const response = await this.session.sendMessage(msg.content);
-			// 	await this.deps.discordWebhookApi.sendMessage(response.reply);
-			// }
+			if (msg.authorId === process.env.DISCORD_ACCOUNT_ID) {
+				await this.deps.discordWebhookApi.sendMessage(
+					'**Bot**: Message received, processing...',
+				);
+				const response = await this.session.sendMessage(msg.content);
+				await this.deps.discordWebhookApi.sendMessage(response.reply);
+			}
 
 			span.setAttribute('action', 'message');
 			return false;

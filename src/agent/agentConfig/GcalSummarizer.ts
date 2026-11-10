@@ -34,6 +34,9 @@ export const GcalEventSummariesSchema = z.array(GcalEventSummarySchema);
 export type GcalEventSummary = z.infer<typeof GcalEventSummarySchema>;
 
 export class AGcalSummarizer extends AbstractAgentConfig {
+	public readonly name = 'gcal-summarizer';
+	public readonly version = '1.0.0';
+
 	constructor(
 		gcalGetCalendarEventsTool: GcalGetCalendarEventsTool,
 		memoryTools: [RememberTool, RecallTool],

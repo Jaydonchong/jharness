@@ -5,6 +5,9 @@ import { WorkspaceToolSet } from '../../tools/workspace/WorkspaceToolSet';
 
 const SYSTEM_PROMPT = 'You are a writer, your job is to write a summary of article provided';
 export class AGeneral extends AbstractAgentConfig {
+	public readonly name = 'general';
+	public readonly version = '1.0.0';
+
 	constructor(memoryTools: [RememberTool, RecallTool], workspaceTools: WorkspaceToolSet) {
 		super({
 			systemPrompt: SYSTEM_PROMPT,
