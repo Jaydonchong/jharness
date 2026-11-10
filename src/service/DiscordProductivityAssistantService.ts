@@ -44,7 +44,14 @@ export class DiscordProductivityAssistantService<TModelType> extends AbstractSer
 
 			if (msg.content === '/compact') {
 				span.setAttribute('action', 'compact');
-				await this.session.compactConversation();
+				const compacted = await this.session.compactConversation();
+				if (!compacted) {
+					await this.deps.discordWebhookApi.sendMessage(
+						'There is no productivity conversation to compact yet.',
+					);
+				} else {
+					await this.deps.discordWebhookApi.sendMessage('-# Conversation compacted');
+				}
 				return false;
 			}
 

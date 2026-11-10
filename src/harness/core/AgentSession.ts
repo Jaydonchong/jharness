@@ -153,7 +153,9 @@ export class AgentSession<TModelType> {
 		return this.props.sessionState.interruptedStreamAttempt;
 	}
 
-	public async compactConversation() {
+	public async compactConversation(): Promise<boolean> {
+		if (this.state === SessionStatus.START) return false;
+
 		this.props.sessionState.transitionTo(SessionStatus.COMPACTING);
 		const currentMessage = this.conversation.currentMessage;
 		try {
@@ -164,6 +166,7 @@ export class AgentSession<TModelType> {
 						? currentMessage.content
 						: undefined,
 			});
+			return true;
 		} finally {
 			this.props.sessionState.transitionTo(SessionStatus.WAITING);
 		}

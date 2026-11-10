@@ -46,9 +46,11 @@ export class SystemDesignDiscordService<TModelType> extends AbstractService {
 
 			if (message.content.trim() === '/compact') {
 				span.setAttribute('action', 'compact');
-				await this.session.compactConversation();
+				const compacted = await this.session.compactConversation();
 				await this.deps.discordWebhookApi.sendMessage(
-					'System design conversation compacted.',
+					compacted
+						? '-# conversation compacted.'
+						: 'There is no system design conversation to compact yet.',
 				);
 				return false;
 			}
