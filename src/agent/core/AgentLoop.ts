@@ -3,11 +3,12 @@ import { DomainError, ErrorCode } from '../../utils/ErrorCode';
 import {
 	ILlmGenerateTextInput,
 	ILlmGenerateTextOutput,
+	ILlmToolCall,
 	LlmTextStopReason,
 } from '../../providers/Interfaces';
 import { AgentConversation } from './AgentConversation';
 import type { InterruptionDetails } from '../../harness/core/SessionState';
-import { getTracer } from '../../telemetry/Telemetry';
+import { TraceScope, WithSpan } from '../../telemetry/Decorators';
 
 export interface ISessionResult {
 	reply: string;
@@ -32,10 +33,10 @@ export type AgentLoopHooks = {
 	onError?: (message: string) => void;
 };
 
+@TraceScope('agent-loop')
 export class AgentLoop<TModelType> {
 	private static readonly MAX_LOOP_STEP = 10;
 	private static readonly MAX_RETRY_PER_STEP = 3;
-	private readonly tracer = getTracer('agent-loop');
 
 	constructor(
 		private readonly conversation: AgentConversation,
@@ -117,13 +118,7 @@ export class AgentLoop<TModelType> {
 							);
 						}
 						this.hooks.onToolCall?.(message);
-						const toolResults = await this.tracer.startActiveSpan(
-							'agent.tool_call_batch',
-							async (span) => {
-								span.setAttribute('tool.call_count', toolCalls.length);
-								return this.toolInvoker.invoke(toolCalls);
-							},
-						);
+						const toolResults = await this.invokeToolCallBatch(toolCalls);
 						this.conversation.append(toolResults);
 						break;
 					default:
@@ -184,5 +179,15 @@ export class AgentLoop<TModelType> {
 			errorMessage: error instanceof Error ? error.message : String(error),
 			occurredAt: Date.now(),
 		};
+	}
+
+	@WithSpan({
+		name: 'agent.tool_call_batch',
+		attributes: (_instance, args) => ({
+			'tool.call_count': (args[0] as ILlmToolCall[]).length,
+		}),
+	})
+	private invokeToolCallBatch(toolCalls: ILlmToolCall[]) {
+		return this.toolInvoker.invoke(toolCalls);
 	}
 }

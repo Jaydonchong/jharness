@@ -4,6 +4,8 @@ import { DiscordBotClient, type DiscordInboundMessage } from '../network/discord
 import { DiscordWebhookApi } from '../network/discord/DiscordWebhookApi';
 import { ILlmProvider } from '../providers/Interfaces';
 import { ASystemDesign } from '../agent/agentConfig/SystemDesign';
+import { getActiveSpan } from '../telemetry/Telemetry';
+import { TraceScope, WithSpan } from '../telemetry/Decorators';
 import { AbstractService } from './AbstractService';
 
 type SystemDesignDiscordServiceDeps<TModelType> = {
@@ -15,6 +17,7 @@ type SystemDesignDiscordServiceDeps<TModelType> = {
 	discordWebhookApi: DiscordWebhookApi;
 };
 
+@TraceScope('service.discord-system-design')
 export class SystemDesignDiscordService<TModelType> extends AbstractService {
 	private readonly session: AgentSession<TModelType>;
 
@@ -37,27 +40,27 @@ export class SystemDesignDiscordService<TModelType> extends AbstractService {
 		}
 	}
 
+	@WithSpan('request.incoming')
 	public async handleMessage(message: DiscordInboundMessage): Promise<boolean> {
-		return this.tracer.startActiveSpan(`request.incoming`, async (span) => {
-			if (message.content.trim() === 'stop') {
-				span.setAttribute('action', 'stop');
-				return true;
-			}
+		const span = getActiveSpan();
+		if (message.content.trim() === 'stop') {
+			span?.setAttribute('action', 'stop');
+			return true;
+		}
 
-			if (message.content.trim() === '/compact') {
-				span.setAttribute('action', 'compact');
-				const compacted = await this.session.compactConversation();
-				await this.deps.discordWebhookApi.sendMessage(
-					compacted
-						? '-# conversation compacted.'
-						: 'There is no system design conversation to compact yet.',
-				);
-				return false;
-			}
-			span.setAttribute('action', 'message');
-			const response = await this.session.sendMessage(message.content);
-			await this.deps.discordWebhookApi.sendMessage(response.reply);
+		if (message.content.trim() === '/compact') {
+			span?.setAttribute('action', 'compact');
+			const compacted = await this.session.compactConversation();
+			await this.deps.discordWebhookApi.sendMessage(
+				compacted
+					? '-# conversation compacted.'
+					: 'There is no system design conversation to compact yet.',
+			);
 			return false;
-		});
+		}
+		span?.setAttribute('action', 'message');
+		const response = await this.session.sendMessage(message.content);
+		await this.deps.discordWebhookApi.sendMessage(response.reply);
+		return false;
 	}
 }

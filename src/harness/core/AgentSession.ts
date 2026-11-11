@@ -10,7 +10,8 @@ import type { AgentConversationCompactor } from '../../agent/core/AgentConversat
 import { AgentLoop } from '../../agent/core/AgentLoop';
 import type { AgentTurnStrategy, ISessionResult } from '../../agent/core/AgentLoop';
 import { ILlmProvider } from '../../providers/Interfaces';
-import { getMeter, getTracer } from '../../telemetry/Telemetry';
+import { getActiveSpan, getMeter } from '../../telemetry/Telemetry';
+import { TraceScope, WithSpan } from '../../telemetry/Decorators';
 import { Counter, Histogram } from '@opentelemetry/api';
 
 export type TSessionMessageContent =
@@ -56,6 +57,7 @@ export type AgentSessionEventContext = {
 	output?: unknown;
 };
 
+@TraceScope('agent-session')
 export class AgentSession<TModelType> {
 	private readonly conversation = new AgentConversation();
 	private _sessionContext: string | null = null;
@@ -64,7 +66,6 @@ export class AgentSession<TModelType> {
 	private readonly toolInvoker: ToolInvoker;
 	private readonly agentLoop: AgentLoop<TModelType>;
 
-	private readonly agentLoopTracer = getTracer('agent-session');
 	private readonly agentLoopMeter = getMeter('agent-session');
 
 	private readonly agentTurnCounter: Counter = this.agentLoopMeter.createCounter(
@@ -231,66 +232,58 @@ export class AgentSession<TModelType> {
 		this.props.sessionState.transitionTo(SessionStatus.WAITING);
 	}
 
+	@WithSpan({
+		name: 'agent-session.turn',
+		attributes: (session) => (session as AgentSession<unknown>).getTurnSpanAttributes(),
+	})
 	public async sendMessage(message: string): Promise<ISessionResult> {
 		const attributes = getAgentTelemetryAttributes(this.props.model, this.agent);
-		const spanAttributes = { ...attributes, 'gen_ai.agent.version': this.agent.version };
-		return this.agentLoopTracer.startActiveSpan(
-			'agent-session.turn',
-			async () => {
-				const startedAt = performance.now();
-				try {
-					const turn = this.runTurn(message, this.generateStrategy);
-					let result = await turn.next();
+		const startedAt = performance.now();
+		try {
+			const turn = this.runTurn(message, this.generateStrategy);
+			let result = await turn.next();
 
-					while (!result.done) {
-						result = await turn.next();
-					}
+			while (!result.done) {
+				result = await turn.next();
+			}
 
-					return result.value;
-				} catch (error) {
-					throw error;
-				} finally {
-					this.agentTurnCounter.add(1, attributes);
-					this.agentTurnDuration.record(
-						(performance.now() - startedAt) / 1000,
-						attributes,
-					);
-				}
-			},
-			{ attributes: spanAttributes },
-		);
+			return result.value;
+		} finally {
+			this.agentTurnCounter.add(1, attributes);
+			this.agentTurnDuration.record((performance.now() - startedAt) / 1000, attributes);
+		}
 	}
 
-	public streamMessage(message: string): AsyncGenerator<string, ISessionResult> {
+	@WithSpan({
+		name: 'agent-session.turn',
+		attributes: (session) => (session as AgentSession<unknown>).getTurnSpanAttributes(),
+	})
+	public async *streamMessage(message: string): AsyncGenerator<string, ISessionResult> {
 		const attributes = getAgentTelemetryAttributes(this.props.model, this.agent);
-		const spanAttributes = { ...attributes, 'gen_ai.agent.version': this.agent.version };
-		const session = this;
+		const span = getActiveSpan();
+		const startedAt = performance.now();
+		let outcome: 'success' | 'error' | 'cancelled' = 'cancelled';
 
-		return this.agentLoopTracer.startActiveGenerator(
-			'agent-session.turn',
-			async function* (span) {
-				const startedAt = performance.now();
-				let outcome: 'success' | 'error' | 'cancelled' = 'cancelled';
+		try {
+			const result = yield* this.runTurn(message, this.streamStrategy);
+			outcome = 'success';
+			return result;
+		} catch (error) {
+			outcome = 'error';
+			throw error;
+		} finally {
+			const turnAttributes = { ...attributes, 'agent.turn.outcome': outcome };
+			span?.setAttribute('agent.turn.outcome', outcome);
+			this.agentTurnCounter.add(1, turnAttributes);
+			this.agentTurnDuration.record((performance.now() - startedAt) / 1000, turnAttributes);
+		}
+	}
 
-				try {
-					const result = yield* session.runTurn(message, session.streamStrategy);
-					outcome = 'success';
-					return result;
-				} catch (error) {
-					outcome = 'error';
-					throw error;
-				} finally {
-					const turnAttributes = { ...attributes, 'agent.turn.outcome': outcome };
-					span.setAttribute('agent.turn.outcome', outcome);
-					session.agentTurnCounter.add(1, turnAttributes);
-					session.agentTurnDuration.record(
-						(performance.now() - startedAt) / 1000,
-						turnAttributes,
-					);
-				}
-			},
-			{ attributes: spanAttributes },
-		);
+	private getTurnSpanAttributes() {
+		return {
+			...getAgentTelemetryAttributes(this.props.model, this.agent),
+			'gen_ai.agent.version': this.agent.version,
+		};
 	}
 
 	private async *runTurn<TChunk extends string>(

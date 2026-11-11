@@ -1,13 +1,9 @@
-import { getMeter, getTracer } from '../telemetry/Telemetry';
+import { getMeter } from '../telemetry/Telemetry';
 
 export abstract class AbstractService {
-	protected readonly tracer: ReturnType<typeof getTracer>;
-
 	public abstract run(): Promise<void>;
 
-	protected constructor(protected readonly name: string) {
-		this.tracer = getTracer(`service.${this.name}`);
-	}
+	protected constructor(protected readonly name: string) {}
 
 	protected getMeter() {
 		return getMeter(`service.${this.name}`);

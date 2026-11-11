@@ -4,6 +4,8 @@ import { Harness } from '../harness/core/Harness';
 import { DiscordBotClient, type DiscordInboundMessage } from '../network/discord/DiscordBotClient';
 import { DiscordWebhookApi } from '../network/discord/DiscordWebhookApi';
 import { ILlmProvider } from '../providers/Interfaces';
+import { getActiveSpan } from '../telemetry/Telemetry';
+import { TraceScope, WithSpan } from '../telemetry/Decorators';
 import { AbstractService } from './AbstractService';
 
 type IDiscordProductivityAssistantServiceDeps<TModelType> = {
@@ -15,6 +17,7 @@ type IDiscordProductivityAssistantServiceDeps<TModelType> = {
 	discordWebhookApi: DiscordWebhookApi;
 };
 
+@TraceScope('service.discord-productivity-assistant')
 export class DiscordProductivityAssistantService<TModelType> extends AbstractService {
 	private readonly session: AgentSession<TModelType>;
 
@@ -35,36 +38,36 @@ export class DiscordProductivityAssistantService<TModelType> extends AbstractSer
 		// }
 	}
 
+	@WithSpan('request.incoming')
 	public async handleMessage(msg: DiscordInboundMessage): Promise<boolean> {
-		return this.tracer.startActiveSpan('request.incoming', async (span) => {
-			if (msg.content === 'stop') {
-				span.setAttribute('action', 'stop');
-				return true;
-			}
+		const span = getActiveSpan();
+		if (msg.content === 'stop') {
+			span?.setAttribute('action', 'stop');
+			return true;
+		}
 
-			if (msg.content === '/compact') {
-				span.setAttribute('action', 'compact');
-				const compacted = await this.session.compactConversation();
-				if (!compacted) {
-					await this.deps.discordWebhookApi.sendMessage(
-						'There is no productivity conversation to compact yet.',
-					);
-				} else {
-					await this.deps.discordWebhookApi.sendMessage('-# Conversation compacted');
-				}
-				return false;
-			}
-
-			if (msg.authorId === process.env.DISCORD_ACCOUNT_ID) {
+		if (msg.content === '/compact') {
+			span?.setAttribute('action', 'compact');
+			const compacted = await this.session.compactConversation();
+			if (!compacted) {
 				await this.deps.discordWebhookApi.sendMessage(
-					'**Bot**: Message received, processing...',
+					'There is no productivity conversation to compact yet.',
 				);
-				const response = await this.session.sendMessage(msg.content);
-				await this.deps.discordWebhookApi.sendMessage(response.reply);
+			} else {
+				await this.deps.discordWebhookApi.sendMessage('-# Conversation compacted');
 			}
-
-			span.setAttribute('action', 'message');
 			return false;
-		});
+		}
+
+		if (msg.authorId === process.env.DISCORD_ACCOUNT_ID) {
+			await this.deps.discordWebhookApi.sendMessage(
+				'**Bot**: Message received, processing...',
+			);
+			const response = await this.session.sendMessage(msg.content);
+			await this.deps.discordWebhookApi.sendMessage(response.reply);
+		}
+
+		span?.setAttribute('action', 'message');
+		return false;
 	}
 }
