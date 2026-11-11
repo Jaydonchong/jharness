@@ -7,6 +7,7 @@ import { ILlmProvider } from '../providers/Interfaces';
 import { getActiveSpan } from '../telemetry/Telemetry';
 import { TraceScope, WithSpan } from '../telemetry/Decorators';
 import { AbstractService } from './AbstractService';
+import { formatCompactionTokenStats } from './formatCompactionTokenStats';
 
 type IDiscordProductivityAssistantServiceDeps<TModelType> = {
 	gcalSummarizerAgent: AGcalSummarizer;
@@ -54,7 +55,9 @@ export class DiscordProductivityAssistantService<TModelType> extends AbstractSer
 					'There is no productivity conversation to compact yet.',
 				);
 			} else {
-				await this.deps.discordWebhookApi.sendMessage('-# Conversation compacted');
+				await this.deps.discordWebhookApi.sendMessage(
+					formatCompactionTokenStats(compacted),
+				);
 			}
 			return false;
 		}

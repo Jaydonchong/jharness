@@ -1,15 +1,18 @@
 import type { AbstractAgentConfig } from '../agentConfig/AbstractAgentConfig';
 import type { ModelConversationMessage } from '../agentConfig/Interfaces';
+import type { CompactionTokenStats } from '../../compaction/core/Interfaces';
 
 export type AgentConversationCompaction = {
 	compactedMessaage: string;
 	retainedMessages: ModelConversationMessage[];
+	tokenStats: CompactionTokenStats;
 };
 
 export type AgentConversationCompactor = (
 	messages: ModelConversationMessage[],
 	conversationCheckpoint: string,
 	agent: AbstractAgentConfig,
+	comparisonSystemPrompt: string,
 ) => Promise<AgentConversationCompaction>;
 
 export class AgentConversation {
@@ -44,9 +47,16 @@ export class AgentConversation {
 	public async compact(
 		compact: AgentConversationCompactor,
 		agent: AbstractAgentConfig,
-	): Promise<void> {
-		const result = await compact(this.conversationMessages, this.conversationCheckpoint, agent);
+		comparisonSystemPrompt: string,
+	): Promise<AgentConversationCompaction> {
+		const result = await compact(
+			this.conversationMessages,
+			this.conversationCheckpoint,
+			agent,
+			comparisonSystemPrompt,
+		);
 		this.conversationCheckpoint = result.compactedMessaage;
 		this.conversationMessages = result.retainedMessages;
+		return result;
 	}
 }

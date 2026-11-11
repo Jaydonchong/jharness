@@ -1,6 +1,7 @@
 import { AbstractAgentConfig } from '../../agent/agentConfig/AbstractAgentConfig';
 import { ModelConversationMessage } from '../../agent/agentConfig/Interfaces';
 import { CompactionEngine } from '../../compaction/core/CompactionEngine';
+import type { CompactionTokenStats } from '../../compaction/core/Interfaces';
 import { ContextAssembler } from '../../memory/core/ContextAssembler';
 import { ILlmProvider } from '../../providers/Interfaces';
 import { ToolInvoker } from '../../tools/core/ToolInvoker';
@@ -34,15 +35,19 @@ export class Harness {
 
 	public async doCompaction(
 		messages: ModelConversationMessage[],
-		_conversationCheckpoint: string,
+		conversationCheckpoint: string,
 		agent: AbstractAgentConfig,
+		comparisonSystemPrompt: string,
 	): Promise<{
 		compactedMessaage: string;
 		retainedMessages: ModelConversationMessage[];
+		tokenStats: CompactionTokenStats;
 	}> {
 		logger.info('Performing compaction');
 		const compactionResult = await this.deps.compactionEngine.compactConversation({
 			systemPrompt: agent.systemPrompt,
+			comparisonSystemPrompt,
+			conversationCheckpoint,
 			messages,
 			config: {
 				factor: 0.3,
@@ -53,6 +58,7 @@ export class Harness {
 		return {
 			compactedMessaage: `\n${compactionResult.compacted}\n`,
 			retainedMessages: compactionResult.recentMessage,
+			tokenStats: compactionResult.tokenStats,
 		};
 	}
 

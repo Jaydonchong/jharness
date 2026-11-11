@@ -7,6 +7,7 @@ import { DomainError, ErrorCode } from '../../utils/ErrorCode';
 import { SessionState, SessionStatus, type InterruptionDetails } from './SessionState';
 import { AgentConversation } from '../../agent/core/AgentConversation';
 import type { AgentConversationCompactor } from '../../agent/core/AgentConversation';
+import type { CompactionTokenStats } from '../../compaction/core/Interfaces';
 import { AgentLoop } from '../../agent/core/AgentLoop';
 import type { AgentTurnStrategy, ISessionResult } from '../../agent/core/AgentLoop';
 import { ILlmProvider } from '../../providers/Interfaces';
@@ -55,6 +56,7 @@ export type AgentSessionEventContext = {
 	toolName?: string;
 	input?: unknown;
 	output?: unknown;
+	compactionStats?: CompactionTokenStats;
 };
 
 @TraceScope('agent-session')
@@ -168,20 +170,25 @@ export class AgentSession<TModelType> {
 		return this.props.sessionState.interruptedStreamAttempt;
 	}
 
-	public async compactConversation(): Promise<boolean> {
-		if (this.state === SessionStatus.START) return false;
+	public async compactConversation(): Promise<CompactionTokenStats | null> {
+		if (this.state === SessionStatus.START) return null;
 
 		this.props.sessionState.transitionTo(SessionStatus.COMPACTING);
 		const currentMessage = this.conversation.currentMessage;
 		try {
-			await this.conversation.compact(this.props.compactionStrategy, this.agent);
+			const result = await this.conversation.compact(
+				this.props.compactionStrategy,
+				this.agent,
+				this.getSessionSystemPrompt(),
+			);
 			this.emitSessionEvent(AgentSessionEventType.COMPACTION, {
 				message:
 					typeof currentMessage?.content === 'string'
 						? currentMessage.content
 						: undefined,
+				compactionStats: result.tokenStats,
 			});
-			return true;
+			return result.tokenStats;
 		} finally {
 			this.props.sessionState.transitionTo(SessionStatus.WAITING);
 		}

@@ -135,7 +135,9 @@ function formatEvent(eventType: AgentSessionEventType, context: AgentSessionEven
 		case AgentSessionEventType.ASSISTANT_MESSAGE:
 			return `message::assistant::${stringify(context.message ?? '')}`;
 		case AgentSessionEventType.COMPACTION:
-			return 'session::compaction';
+			return context.compactionStats
+				? `session::compaction::tokens::before=${context.compactionStats.beforeTokens}::after=${context.compactionStats.afterTokens}::saved=${context.compactionStats.tokensSaved}::reduction_percent=${context.compactionStats.reductionPercent ?? 'unknown'}`
+				: 'session::compaction';
 		case AgentSessionEventType.SESSION_ERROR:
 			return 'session::error';
 		case AgentSessionEventType.SESSION_TIMEOUT:

@@ -7,6 +7,7 @@ import { ASystemDesign } from '../agent/agentConfig/SystemDesign';
 import { getActiveSpan } from '../telemetry/Telemetry';
 import { TraceScope, WithSpan } from '../telemetry/Decorators';
 import { AbstractService } from './AbstractService';
+import { formatCompactionTokenStats } from './formatCompactionTokenStats';
 
 type SystemDesignDiscordServiceDeps<TModelType> = {
 	systemDesignAgent: ASystemDesign;
@@ -53,7 +54,7 @@ export class SystemDesignDiscordService<TModelType> extends AbstractService {
 			const compacted = await this.session.compactConversation();
 			await this.deps.discordWebhookApi.sendMessage(
 				compacted
-					? '-# conversation compacted.'
+					? formatCompactionTokenStats(compacted)
 					: 'There is no system design conversation to compact yet.',
 			);
 			return false;
