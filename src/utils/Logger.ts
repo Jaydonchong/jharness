@@ -22,20 +22,32 @@ export class Logger {
 		);
 	}
 
+	private log(
+		level: 'fatal' | 'info' | 'debug' | 'warn' | 'error',
+		message: string,
+		object: Record<string, any>,
+	) {
+		const severity = level.toUpperCase();
+		const timestamp = new Date().toISOString();
+		const body = JSON.stringify({ ...object, message });
+
+		this.pino[level]({ timestamp, severity }, body);
+	}
+
 	public fatal(message: string = '', object: Record<string, any> = {}) {
-		this.pino.fatal(object, message);
+		this.log('fatal', message, object);
 	}
 	public info(message: string = '', object: Record<string, any> = {}) {
-		this.pino.info(object, message);
+		this.log('info', message, object);
 	}
 	public debug(message: string = '', object: Record<string, any> = {}) {
-		this.pino.debug(object, message);
+		this.log('debug', message, object);
 	}
 	public warn(message: string = '', object: Record<string, any> = {}) {
-		this.pino.warn(object, message);
+		this.log('warn', message, object);
 	}
 	public error(message: string = '', object: Record<string, any> = {}) {
-		this.pino.error(object, message);
+		this.log('error', message, object);
 	}
 }
 

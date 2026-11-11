@@ -37,7 +37,10 @@ import { OTLPsdk } from './telemetry/instrumentation';
 
 void (async () => {
 	const dataSource = await AppDataSource.initialize();
-	logger.info('dataSource initialized', { intiialized: dataSource.isInitialized });
+	logger.info('dataSource initialized', {
+		intialized: dataSource.isInitialized,
+		database: 'postgres',
+	});
 	/**Tools */
 	const googleCalApi = new GoogleCalendarApi(process.env.GOOGLE_GCAL_CREDENTIALS_PATH!);
 	const gcalGetCalendarEventsTool = new GcalGetCalendarEventsTool({
