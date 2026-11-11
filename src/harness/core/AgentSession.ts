@@ -261,8 +261,36 @@ export class AgentSession<TModelType> {
 		);
 	}
 
-	public async *streamMessage(message: string): AsyncGenerator<string> {
-		yield* this.runTurn(message, this.streamStrategy);
+	public streamMessage(message: string): AsyncGenerator<string, ISessionResult> {
+		const attributes = getAgentTelemetryAttributes(this.props.model, this.agent);
+		const spanAttributes = { ...attributes, 'gen_ai.agent.version': this.agent.version };
+		const session = this;
+
+		return this.agentLoopTracer.startActiveGenerator(
+			'agent-session.turn',
+			async function* (span) {
+				const startedAt = performance.now();
+				let outcome: 'success' | 'error' | 'cancelled' = 'cancelled';
+
+				try {
+					const result = yield* session.runTurn(message, session.streamStrategy);
+					outcome = 'success';
+					return result;
+				} catch (error) {
+					outcome = 'error';
+					throw error;
+				} finally {
+					const turnAttributes = { ...attributes, 'agent.turn.outcome': outcome };
+					span.setAttribute('agent.turn.outcome', outcome);
+					session.agentTurnCounter.add(1, turnAttributes);
+					session.agentTurnDuration.record(
+						(performance.now() - startedAt) / 1000,
+						turnAttributes,
+					);
+				}
+			},
+			{ attributes: spanAttributes },
+		);
 	}
 
 	private async *runTurn<TChunk extends string>(
