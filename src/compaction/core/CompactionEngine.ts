@@ -48,7 +48,10 @@ export class CompactionEngine {
 				input.messages,
 			),
 		).length;
-		const compactionResult = await this.basePipeline.run(input);
+		const compactionResult = await this.basePipeline.run({
+			...input,
+			originalTokenCount: beforeTokens,
+		});
 		const compacted = this._deserializeCompactionResult(compactionResult);
 		const recentMessage = compactionResult.recentMessages;
 		const afterTokens = this.tokenizer.tokenize(

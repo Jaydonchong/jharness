@@ -4,9 +4,10 @@ export type CompactionInput = {
 	systemPrompt: string;
 	comparisonSystemPrompt?: string;
 	conversationCheckpoint?: string;
+	originalTokenCount?: number;
 	messages: ModelConversationMessage[];
 	config: {
-		factor: number; // Compaction ratio 1-10 representing 0.1-1
+		factor: number; // Maximum summary-to-original-context token ratio, from 0 (exclusive) to 1
 	};
 };
 
