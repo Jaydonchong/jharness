@@ -51,7 +51,6 @@ void (async () => {
 		baseUrl: process.env.OPENSERP_BASE_URL,
 	});
 	const openSerpSearchAdapter = new OpenSerpSearchAdapter({ client: openSerpClient });
-	// Deliberately leave this out of agent configs until web search is enabled for one.
 	const webSearchTool = new WebSearchTool({ webSearchAdapter: openSerpSearchAdapter });
 	const discordWebhookApi = new DiscordWebhookApi();
 	const discordBotClient = new DiscordBotClient();
@@ -129,7 +128,7 @@ void (async () => {
 		discordWebhookApi,
 	});
 	const systemDesignService = new SystemDesignDiscordService({
-		systemDesignAgent: new ASystemDesign(memoryTools[1]),
+		systemDesignAgent: new ASystemDesign(memoryTools[1], webSearchTool),
 		harness,
 		llmProvider: vercelSDK,
 		model: VERCEL_AI_MODELS.DEFAULT,
