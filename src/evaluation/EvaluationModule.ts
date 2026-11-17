@@ -16,6 +16,8 @@ export type {
 export { AgentSessionEvaluationTarget } from './adapters/AgentSessionEvaluationTarget';
 export { ResponsePresentGrader } from './graders/ResponsePresentGrader';
 export { ToolCallExpectationGrader } from './graders/ToolCallExpectationGrader';
+export { LlmJudgeGrader } from './graders/LlmJudgeGrader';
+export type { LlmJudgeGraderOptions } from './graders/LlmJudgeGrader';
 export { EvaluationTrialEntity } from './data/EvaluationTrialEntity.entity';
 export { EvaluationTrialRepository as TypeOrmEvaluationTrialStore } from './data/EvaluationTrialRepository';
 export { gcalSummarizerSmokeSuite } from './suites/gcalSummarizerSmokeSuite';
