@@ -27,6 +27,7 @@ import { VERCEL_AI_MODELS, VercelSDK } from '@providers/VercelSDK';
 import { CloudflareReranker } from '@network/rerankingModel/CloudflareReranker';
 import { AppDataSource } from '@database/data-source';
 import { EvaluationHarness, AgentSessionEvaluationTarget } from '@evaluation/EvaluationModule';
+import type { EvaluationSuiteRun } from '@evaluation/EvaluationModule';
 import { AgentSuiteRegistry } from '@evaluation/AgentSuiteRegistry';
 import { EvaluationTrialEntity } from '@evaluation/data/EvaluationTrialEntity.entity';
 import { EvaluationTrialRepository } from '@evaluation/data/EvaluationTrialRepository';
@@ -108,13 +109,12 @@ const run = async (): Promise<void> => {
 
 				try {
 					const suiteRun = await evaluationHarness.runSuite(suite);
-					console.info(
-						`${suiteRun.passed ? 'PASS' : 'FAIL'} ${agentName}/${suite.id} (${suiteRun.trials.length} trials)`,
-					);
+					console.info(formatSuiteRun(agentName, suiteRun));
 					if (!suiteRun.passed) failedSuites++;
 				} catch (error) {
 					failedSuites++;
-					console.error(`FAIL ${agentName}/${suite.id}`, error);
+					console.error(`FAIL ${agentName}/${suite.id}`);
+					console.error(formatError(error));
 				}
 			}
 		}
@@ -128,6 +128,38 @@ const run = async (): Promise<void> => {
 
 	if (failedSuites > 0) process.exitCode = 1;
 };
+
+function formatSuiteRun(agentName: string, suiteRun: EvaluationSuiteRun): string {
+	const passedTrials = suiteRun.trials.filter((trial) => trial.passed).length;
+	const failedTrials = suiteRun.trials.length - passedTrials;
+	const graderOutcomes = suiteRun.trials.flatMap((trial) => Object.values(trial.graderOutcomes));
+	const passedGraders = graderOutcomes.filter((outcome) => outcome.passed).length;
+	const failedGraders = graderOutcomes.length - passedGraders;
+	const lines = [`${suiteRun.passed ? 'PASS' : 'FAIL'} ${agentName}/${suiteRun.suiteId}`];
+
+	for (const trial of suiteRun.trials) {
+		lines.push(`  ${trial.passed ? '✓' : '✗'} ${trial.taskId}`);
+		for (const [graderId, outcome] of Object.entries(trial.graderOutcomes)) {
+			const explanation = outcome.details?.explanation;
+			lines.push(
+				`    ${outcome.passed ? '✓' : '✗'} ${graderId} (${outcome.score.toFixed(2)})${
+					typeof explanation === 'string' ? ` — ${explanation}` : ''
+				}`,
+			);
+		}
+		if (trial.error) lines.push(`    Error: ${trial.error}`);
+	}
+
+	lines.push(
+		`  Trials: ${passedTrials} passed, ${failedTrials} failed, ${suiteRun.trials.length} total`,
+		`  Graders: ${passedGraders} passed, ${failedGraders} failed, ${graderOutcomes.length} total`,
+	);
+	return lines.join('\n');
+}
+
+function formatError(error: unknown): string {
+	return error instanceof Error ? (error.stack ?? error.message) : String(error);
+}
 
 void run().catch((error: unknown) => {
 	console.error('Evaluation suite run failed', error);
