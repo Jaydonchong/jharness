@@ -6,6 +6,7 @@ export type EvaluationCase = {
 
 export type EvaluationSuite = {
 	id: string;
+	graders: EvaluationGrader[];
 	cases: EvaluationCase[];
 };
 

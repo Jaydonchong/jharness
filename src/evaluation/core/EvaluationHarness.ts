@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import type {
-	EvaluationGrader,
 	EvaluationCaseResult,
 	EvaluationResultStore,
 	EvaluationRun,
@@ -11,22 +10,18 @@ import type {
 
 export type EvaluationHarnessDeps = {
 	target: EvaluationTarget;
-	graders: EvaluationGrader[];
 	resultStore: EvaluationResultStore;
 };
 
 export class EvaluationHarness {
-	private readonly graders: Map<string, EvaluationGrader>;
-
-	public constructor(private readonly deps: EvaluationHarnessDeps) {
-		this.graders = new Map(deps.graders.map((grader) => [grader.id, grader]));
-		if (this.graders.size !== deps.graders.length) {
-			throw new Error('Evaluation grader IDs must be unique');
-		}
-	}
+	public constructor(private readonly deps: EvaluationHarnessDeps) {}
 
 	public async runSuite(suite: EvaluationSuite): Promise<EvaluationRun> {
 		if (suite.cases.length === 0) throw new Error(`Evaluation suite has no cases: ${suite.id}`);
+		const graders = new Map(suite.graders.map((grader) => [grader.id, grader]));
+		if (graders.size !== suite.graders.length) {
+			throw new Error(`Evaluation grader IDs must be unique in suite: ${suite.id}`);
+		}
 
 		const caseIds = new Set<string>();
 		for (const evaluationCase of suite.cases) {
@@ -38,7 +33,7 @@ export class EvaluationHarness {
 				throw new Error(`Evaluation case has no graders: ${evaluationCase.id}`);
 			}
 			for (const graderId of evaluationCase.graderIds) {
-				if (!this.graders.has(graderId)) {
+				if (!graders.has(graderId)) {
 					throw new Error(`Unknown evaluation grader: ${graderId}`);
 				}
 			}
@@ -62,7 +57,7 @@ export class EvaluationHarness {
 				error = output.error;
 
 				for (const graderId of evaluationCase.graderIds) {
-					const grader = this.graders.get(graderId);
+					const grader = graders.get(graderId);
 					if (!grader) throw new Error(`Unknown evaluation grader: ${graderId}`);
 					graderResults[graderId] = await grader.grade({
 						input: evaluationCase.input,
