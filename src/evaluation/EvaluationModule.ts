@@ -1,3 +1,4 @@
+export { AgentSuiteRegistry } from './AgentSuiteRegistry';
 export { EvaluationHarness } from './core/EvaluationHarness';
 export type { EvaluationHarnessDeps } from './core/EvaluationHarness';
 export type {
