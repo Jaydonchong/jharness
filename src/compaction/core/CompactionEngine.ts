@@ -7,7 +7,6 @@ import { BaselineTokenizer } from '../../utils/BaselineTokenizer';
 import { CompactionPipeline } from './CompactionPipeline';
 import { CompactionInput, CompactionOutput, CompactionTokenStats } from './Interfaces';
 import { getActiveSpan, getMeter } from '../../telemetry/Telemetry';
-import { Histogram } from '@opentelemetry/api';
 
 export class CompactionEngine {
 	private readonly tokenizer = new BaselineTokenizer();

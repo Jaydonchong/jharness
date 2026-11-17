@@ -78,10 +78,7 @@ export class CompactionPipeline {
 		}
 	}
 
-	@WithSpan((instance, args) => {
-		const node = args[0] as AbstractCompactionPipelineNode;
-		return `compaction.pipeline.node.${node.name}`;
-	})
+	@WithSpan('compactionPipeline.node')
 	private async executeNode(
 		node: AbstractCompactionPipelineNode,
 		input: CompactionOutput,
@@ -90,6 +87,7 @@ export class CompactionPipeline {
 		const startedAt = performance.now();
 		let outcome: 'success' | 'error' = 'success';
 		try {
+			span?.setAttribute('compactionPipeline.node.name', node.name);
 			span?.setAttribute('compaction.input_message_count', input.compactedResult.length);
 			const output = await node.execute(input);
 			span?.setAttribute('compaction.output_message_count', output.compactedResult.length);
@@ -99,7 +97,7 @@ export class CompactionPipeline {
 			throw error;
 		} finally {
 			this.nodeDuration.record((performance.now() - startedAt) / 1000, {
-				'compaction.node.name': node.name,
+				'compactionPipeline.node.name': node.name,
 				'compaction.outcome': outcome,
 			});
 		}
