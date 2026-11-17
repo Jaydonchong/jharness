@@ -4,24 +4,23 @@ import { ToolCallExpectationGrader } from '@evaluation/graders/ToolCallExpectati
 
 export const systemDesignSmokeSuite: EvaluationSuite = {
 	id: 'system-design-smoke',
-	graders: [
-		new ResponsePresentGrader(),
-		new ToolCallExpectationGrader({
-			id: 'recall-tool-called',
-			toolName: 'recall',
-			expected: 'called',
-		}),
-		new ToolCallExpectationGrader({
-			id: 'web-search-not-called',
-			toolName: 'web_search',
-			expected: 'not-called',
-		}),
-	],
-	cases: [
+	tasks: [
 		{
 			id: 'explain-acid-from-corpus',
 			input: 'What is ACID in relational databases?',
-			graderIds: ['response-present', 'recall-tool-called', 'web-search-not-called'],
+			graders: [
+				new ResponsePresentGrader(),
+				new ToolCallExpectationGrader({
+					id: 'recall-tool-called',
+					toolName: 'recall',
+					expected: 'called',
+				}),
+				new ToolCallExpectationGrader({
+					id: 'web-search-not-called',
+					toolName: 'web_search',
+					expected: 'not-called',
+				}),
+			],
 		},
 	],
 };

@@ -7,11 +7,11 @@ export class AgentSessionEvaluationTarget implements EvaluationTarget {
 	public constructor(
 		private readonly createSession: (context: {
 			suiteId: string;
-			caseId: string;
+			taskId: string;
 		}) => EvaluationSession,
 	) {}
 
-	public async run(input: string, context: { suiteId: string; caseId: string }) {
+	public async run(input: string, context: { suiteId: string; taskId: string }) {
 		const session = this.createSession(context);
 		let response;
 		let error: string | undefined;

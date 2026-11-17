@@ -1,21 +1,21 @@
 export { EvaluationHarness } from './core/EvaluationHarness';
 export type { EvaluationHarnessDeps } from './core/EvaluationHarness';
 export type {
-	EvaluationCase,
-	EvaluationCaseResult,
+	EvaluationTask,
+	EvaluationTrial,
 	EvaluationGrader,
-	EvaluationResultStore,
-	EvaluationRun,
+	EvaluationTrialStore,
+	EvaluationSuiteRun,
 	EvaluationSuite,
 	EvaluationTarget,
 	EvaluationTargetOutput,
 	GraderInput,
-	GraderResult,
+	GraderOutcome,
 } from './core/Contracts';
 export { AgentSessionEvaluationTarget } from './adapters/AgentSessionEvaluationTarget';
 export { ResponsePresentGrader } from './graders/ResponsePresentGrader';
 export { ToolCallExpectationGrader } from './graders/ToolCallExpectationGrader';
-export { EvaluationCaseResultEntity } from './data/EvaluationCaseResultEntity.entity';
-export { TypeOrmEvaluationResultStore } from './data/TypeOrmEvaluationResultStore';
+export { EvaluationTrialEntity } from './data/EvaluationTrialEntity.entity';
+export { EvaluationTrialRepository as TypeOrmEvaluationTrialStore } from './data/EvaluationTrialRepository';
 export { gcalSummarizerSmokeSuite } from './suites/gcalSummarizerSmokeSuite';
 export { systemDesignSmokeSuite } from './suites/systemDesignSmokeSuite';

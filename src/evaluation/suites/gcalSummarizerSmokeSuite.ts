@@ -4,19 +4,18 @@ import { ToolCallExpectationGrader } from '@evaluation/graders/ToolCallExpectati
 
 export const gcalSummarizerSmokeSuite: EvaluationSuite = {
 	id: 'gcal-summarizer-smoke',
-	graders: [
-		new ResponsePresentGrader(),
-		new ToolCallExpectationGrader({
-			id: 'gcal-tool-called',
-			toolName: 'gcal_list_events',
-			expected: 'called',
-		}),
-	],
-	cases: [
+	tasks: [
 		{
 			id: 'summarize-calendar-day',
 			input: 'List my calendar events for November 12, 2026.',
-			graderIds: ['response-present', 'gcal-tool-called'],
+			graders: [
+				new ResponsePresentGrader(),
+				new ToolCallExpectationGrader({
+					id: 'gcal-tool-called',
+					toolName: 'gcal_list_events',
+					expected: 'called',
+				}),
+			],
 		},
 	],
 };

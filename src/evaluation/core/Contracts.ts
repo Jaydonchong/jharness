@@ -1,13 +1,12 @@
-export type EvaluationCase = {
+export type EvaluationTask = {
 	id: string;
 	input: string;
-	graderIds: string[];
+	graders: EvaluationGrader[];
 };
 
 export type EvaluationSuite = {
 	id: string;
-	graders: EvaluationGrader[];
-	cases: EvaluationCase[];
+	tasks: EvaluationTask[];
 };
 
 export type EvaluationTargetOutput = {
@@ -20,7 +19,7 @@ export type EvaluationTargetOutput = {
 export interface EvaluationTarget {
 	run(
 		input: string,
-		context: { suiteId: string; caseId: string },
+		context: { suiteId: string; taskId: string },
 	): Promise<EvaluationTargetOutput>;
 }
 
@@ -29,7 +28,7 @@ export type GraderInput = {
 	output: EvaluationTargetOutput;
 };
 
-export type GraderResult = {
+export type GraderOutcome = {
 	passed: boolean;
 	score: number;
 	details?: Record<string, unknown>;
@@ -37,27 +36,27 @@ export type GraderResult = {
 
 export interface EvaluationGrader {
 	id: string;
-	grade(input: GraderInput): Promise<GraderResult>;
+	grade(input: GraderInput): Promise<GraderOutcome>;
 }
 
-export type EvaluationCaseResult = {
-	runId: string;
+export type EvaluationTrial = {
+	suiteRunId: string;
 	suiteId: string;
-	caseId: string;
+	taskId: string;
 	passed: boolean;
-	graderResults: Record<string, GraderResult>;
+	graderOutcomes: Record<string, GraderOutcome>;
 	targetMetadata?: Record<string, unknown>;
 	error?: string;
 	evaluatedAt: Date;
 };
 
-export interface EvaluationResultStore {
-	save(result: EvaluationCaseResult): Promise<void>;
+export interface EvaluationTrialStore {
+	save(trial: EvaluationTrial): Promise<void>;
 }
 
-export type EvaluationRun = {
-	runId: string;
+export type EvaluationSuiteRun = {
+	suiteRunId: string;
 	suiteId: string;
 	passed: boolean;
-	caseResults: EvaluationCaseResult[];
+	trials: EvaluationTrial[];
 };

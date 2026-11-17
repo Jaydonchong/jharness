@@ -1,66 +1,58 @@
 import { randomUUID } from 'node:crypto';
 import type {
-	EvaluationCaseResult,
-	EvaluationResultStore,
-	EvaluationRun,
+	EvaluationTrial,
+	EvaluationTrialStore,
+	EvaluationSuiteRun,
 	EvaluationSuite,
 	EvaluationTarget,
-	GraderResult,
+	GraderOutcome,
 } from './Contracts';
 
 export type EvaluationHarnessDeps = {
 	target: EvaluationTarget;
-	resultStore: EvaluationResultStore;
+	trialStore: EvaluationTrialStore;
 };
 
 export class EvaluationHarness {
 	public constructor(private readonly deps: EvaluationHarnessDeps) {}
 
-	public async runSuite(suite: EvaluationSuite): Promise<EvaluationRun> {
-		if (suite.cases.length === 0) throw new Error(`Evaluation suite has no cases: ${suite.id}`);
-		const graders = new Map(suite.graders.map((grader) => [grader.id, grader]));
-		if (graders.size !== suite.graders.length) {
-			throw new Error(`Evaluation grader IDs must be unique in suite: ${suite.id}`);
-		}
-
-		const caseIds = new Set<string>();
-		for (const evaluationCase of suite.cases) {
-			if (caseIds.has(evaluationCase.id)) {
-				throw new Error(`Duplicate evaluation case ID: ${evaluationCase.id}`);
+	public async runSuite(suite: EvaluationSuite): Promise<EvaluationSuiteRun> {
+		if (suite.tasks.length === 0) throw new Error(`Evaluation suite has no tasks: ${suite.id}`);
+		const taskIds = new Set<string>();
+		for (const task of suite.tasks) {
+			if (taskIds.has(task.id)) {
+				throw new Error(`Duplicate evaluation task ID: ${task.id}`);
 			}
-			caseIds.add(evaluationCase.id);
-			if (evaluationCase.graderIds.length === 0) {
-				throw new Error(`Evaluation case has no graders: ${evaluationCase.id}`);
+			taskIds.add(task.id);
+			if (task.graders.length === 0) {
+				throw new Error(`Evaluation task has no graders: ${task.id}`);
 			}
-			for (const graderId of evaluationCase.graderIds) {
-				if (!graders.has(graderId)) {
-					throw new Error(`Unknown evaluation grader: ${graderId}`);
-				}
+			const graderIds = new Set(task.graders.map((grader) => grader.id));
+			if (graderIds.size !== task.graders.length) {
+				throw new Error(`Evaluation grader IDs must be unique in task: ${task.id}`);
 			}
 		}
 
-		const runId = randomUUID();
-		const caseResults: EvaluationCaseResult[] = [];
+		const suiteRunId = randomUUID();
+		const trials: EvaluationTrial[] = [];
 
-		for (const evaluationCase of suite.cases) {
+		for (const task of suite.tasks) {
 			const evaluatedAt = new Date();
-			const graderResults: Record<string, GraderResult> = {};
+			const graderOutcomes: Record<string, GraderOutcome> = {};
 			let targetMetadata: Record<string, unknown> | undefined;
 			let error: string | undefined;
 
 			try {
-				const output = await this.deps.target.run(evaluationCase.input, {
+				const output = await this.deps.target.run(task.input, {
 					suiteId: suite.id,
-					caseId: evaluationCase.id,
+					taskId: task.id,
 				});
 				targetMetadata = output.metadata;
 				error = output.error;
 
-				for (const graderId of evaluationCase.graderIds) {
-					const grader = graders.get(graderId);
-					if (!grader) throw new Error(`Unknown evaluation grader: ${graderId}`);
-					graderResults[graderId] = await grader.grade({
-						input: evaluationCase.input,
+				for (const grader of task.graders) {
+					graderOutcomes[grader.id] = await grader.grade({
+						input: task.input,
 						output,
 					});
 				}
@@ -68,28 +60,28 @@ export class EvaluationHarness {
 				error = cause instanceof Error ? cause.message : String(cause);
 			}
 
-			const result = {
-				runId,
+			const trial = {
+				suiteRunId,
 				suiteId: suite.id,
-				caseId: evaluationCase.id,
+				taskId: task.id,
 				passed:
 					error === undefined &&
-					Object.values(graderResults).every((graderResult) => graderResult.passed),
-				graderResults,
+					Object.values(graderOutcomes).every((graderOutcome) => graderOutcome.passed),
+				graderOutcomes,
 				targetMetadata,
 				error,
 				evaluatedAt,
 			};
 
-			await this.deps.resultStore.save(result);
-			caseResults.push(result);
+			await this.deps.trialStore.save(trial);
+			trials.push(trial);
 		}
 
 		return {
-			runId,
+			suiteRunId,
 			suiteId: suite.id,
-			passed: caseResults.every((result) => result.passed),
-			caseResults,
+			passed: trials.every((trial) => trial.passed),
+			trials,
 		};
 	}
 }
