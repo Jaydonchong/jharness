@@ -25,7 +25,10 @@ import {
 	tool,
 	Output,
 } from 'ai';
+import type { LanguageModelUsage } from 'ai';
 import z from 'zod';
+import { getMeter } from '@telemetry/Telemetry';
+import { BaselineTokenizer } from '@utils/BaselineTokenizer';
 import {
 	ILlmGenerateTextInput,
 	ILlmGenerateTextOutput,
@@ -38,6 +41,7 @@ import { ModelConversationMessage } from '@agent/agentConfig/Interfaces';
 import { AgentTool } from '@tools/core/AgentTool';
 import { DomainError, ErrorCode } from '@utils/ErrorCode';
 import logger from '@utils/Logger';
+import type { Counter } from '@opentelemetry/api';
 
 const mapAiSdkError = (error: unknown): DomainError => {
 	const failure = RetryError.isInstance(error) ? (error.lastError ?? error) : error;
@@ -103,6 +107,17 @@ export enum VERCEL_AI_MODELS {
 }
 
 export class VercelSDK implements ILlmProvider<LanguageModel> {
+	private readonly tokenizer = new BaselineTokenizer();
+	private readonly meter = getMeter('vercel-sdk');
+	private readonly inputTokenCounter: Counter = this.meter.createCounter('llm.tokens.input', {
+		description: 'Input tokens sent to language models',
+		unit: '{token}',
+	});
+	private readonly outputTokenCounter: Counter = this.meter.createCounter('llm.tokens.output', {
+		description: 'Output tokens returned by language models',
+		unit: '{token}',
+	});
+
 	/**
 	 * https://ai-sdk.dev/docs/reference/ai-sdk-core/generate-text#types
 	 */
@@ -168,6 +183,7 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
 					: undefined;
 
 			this._verifyEmptyFinalStep(result, output);
+			this.recordTokenUsage(config, messages, result.responseMessages, result.totalUsage);
 
 			return {
 				messages: result.responseMessages as ModelConversationMessage[],
@@ -228,13 +244,15 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
 					result.responseMessages,
 					result.finishReason,
 					result.toolCalls,
-				]).then(async ([messages, stopReason, toolCalls]) => {
+					result.totalUsage,
+				]).then(async ([responseMessages, stopReason, toolCalls, usage]) => {
 					let output: unknown;
 					if (config.outputSchema && stopReason === LlmTextStopReason.STOP) {
 						output = await result.output;
 					}
+					this.recordTokenUsage(config, messages, responseMessages, usage);
 					return {
-						messages: messages as ModelConversationMessage[],
+						messages: responseMessages as ModelConversationMessage[],
 						stopReason: stopReason as LlmTextStopReason, //TODO: Map API Enum to APP
 						toolCalls: toolCalls.map((tool) => ({
 							id: tool.toolCallId,
@@ -251,6 +269,67 @@ export class VercelSDK implements ILlmProvider<LanguageModel> {
 			});
 			throw mapAiSdkError(error);
 		}
+	}
+
+	private recordTokenUsage(
+		config: ILlmGenerateTextInput<LanguageModel>['config'],
+		inputMessages: unknown,
+		outputMessages: unknown,
+		usage: LanguageModelUsage,
+	): void {
+		const modelId = typeof config.model === 'string' ? config.model : config.model.modelId;
+		const providerName =
+			typeof config.model === 'string' ? modelId.split('/')[0] : config.model.provider;
+		const modelAttributes = {
+			'gen_ai.provider.name': providerName,
+			'gen_ai.request.model': modelId,
+		};
+		const inputTokenCount = this.resolveTokenCount(
+			usage.inputTokens,
+			[config.systemPrompt ?? '', this.formatMessagesForTokenization(inputMessages)].join(
+				'\n',
+			),
+		);
+		const outputTokenCount = this.resolveTokenCount(
+			usage.outputTokens,
+			this.formatMessagesForTokenization(outputMessages),
+		);
+
+		this.inputTokenCounter.add(inputTokenCount.count, {
+			...modelAttributes,
+			'llm.tokens.source': inputTokenCount.source,
+		});
+		this.outputTokenCounter.add(outputTokenCount.count, {
+			...modelAttributes,
+			'llm.tokens.source': outputTokenCount.source,
+		});
+	}
+
+	private resolveTokenCount(
+		providerTokenCount: number | undefined,
+		fallbackText: string,
+	): { count: number; source: 'provider' | 'baseline' } {
+		if (
+			providerTokenCount !== undefined &&
+			Number.isFinite(providerTokenCount) &&
+			providerTokenCount >= 0
+		) {
+			return { count: providerTokenCount, source: 'provider' };
+		}
+		return { count: this.tokenizer.tokenize(fallbackText).length, source: 'baseline' };
+	}
+
+	private formatMessagesForTokenization(messages: unknown): string {
+		if (!Array.isArray(messages)) return String(messages ?? '');
+		return messages
+			.map((message) => {
+				if (typeof message !== 'object' || message === null) return String(message);
+				const { role, content } = message as { role?: unknown; content?: unknown };
+				const contentText =
+					typeof content === 'string' ? content : JSON.stringify(content ?? '');
+				return `${String(role ?? '')}\n${contentText}`;
+			})
+			.join('\n');
 	}
 
 	public sanitizeTool<
