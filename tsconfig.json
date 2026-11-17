@@ -17,6 +17,7 @@
       "@migrations/*": ["./src/migrations/*"],
       "@network/*": ["./src/network/*"],
       "@providers/*": ["./src/providers/*"],
+      "@queue/*": ["./src/queue/*"],
       "@scripts/*": ["./src/scripts/*"],
       "@service/*": ["./src/service/*"],
       "@telemetry/*": ["./src/telemetry/*"],

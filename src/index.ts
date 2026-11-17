@@ -34,9 +34,12 @@ import { CloudflareReranker } from '@network/rerankingModel/CloudflareReranker';
 import { AppDataSource } from '@database/data-source';
 import logger from '@utils/Logger';
 import { OTLPsdk } from '@telemetry/instrumentation';
+import { PgBossModule } from '@queue/PgBossModule';
 
 void (async () => {
 	const dataSource = await AppDataSource.initialize();
+	const pgBossModule = new PgBossModule();
+	await pgBossModule.start();
 	logger.info('dataSource initialized', {
 		intialized: dataSource.isInitialized,
 		database: 'postgres',
@@ -149,6 +152,7 @@ void (async () => {
 
 	await Promise.all([productivityService.run(), systemDesignService.run()]);
 
+	await pgBossModule.stop();
 	await harness.close();
 	console.info('====COMPLETED====');
 	await OTLPsdk.shutdown();
