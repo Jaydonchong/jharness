@@ -12,7 +12,8 @@
 		"migration:run": "npm run build && node --env-file=.env ./node_modules/typeorm/cli.js migration:run -d dist/database/data-source.js",
 		"migration:revert": "npm run build && node --env-file=.env ./node_modules/typeorm/cli.js migration:revert -d dist/database/data-source.js",
 		"prepare": "node scripts/install-husky.mjs",
-		"prettify": "prettier . --write"
+		"prettify": "prettier . --write",
+		"evaluation:run": "npm run build && node --env-file-if-exists=.env dist/scripts/RunEvaluationSuites.js"
 	},
 	"lint-staged": {
 		"*.{ts,tsx,js,jsx,mjs,cjs}": "prettier --write"
