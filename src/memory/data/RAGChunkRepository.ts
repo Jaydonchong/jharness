@@ -1,7 +1,7 @@
 import type { EntityManager, SelectQueryBuilder } from 'typeorm';
-import { AppDataSource } from '../../database/data-source';
-import { MEMORY_TYPE, type MemoryRetrievalContext } from '../core/Interfaces';
-import { RAGChunk } from '../model/RAGChunk';
+import { AppDataSource } from '@database/data-source';
+import { MEMORY_TYPE, type MemoryRetrievalContext } from '@memory/core/Interfaces';
+import { RAGChunk } from '@memory/model/RAGChunk';
 import { RAGChunkEntity } from './RAGChunkEntity.entity';
 import { RAGChunkEmbeddingEntity } from './RAGChunkEmbeddingEntity.entity';
 

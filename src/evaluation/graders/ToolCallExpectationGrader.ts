@@ -1,4 +1,4 @@
-import type { EvaluationGrader } from '../core/Contracts';
+import type { EvaluationGrader } from '@evaluation/core/Contracts';
 
 export type ToolCallExpectation = {
 	id: string;

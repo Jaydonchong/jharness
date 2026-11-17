@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { asDomainError, DomainError, ErrorCode } from '../../utils/ErrorCode';
+import { asDomainError, DomainError, ErrorCode } from '@utils/ErrorCode';
 import { AbstractEmbeddingModel, EmbeddingPurpose } from './AbstractEmbeddingModel';
 import { AbstractEmbeddingInputFormatter } from './embeddingInputFormatters/AbstractEmbeddingInputFormatter';
 import { OllamaEmbeddingGemma2InputFormatter } from './embeddingInputFormatters/OllamaEmbeddingGemma2InputFormatter';

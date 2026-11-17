@@ -1,15 +1,15 @@
 import { readFileSync } from 'node:fs';
-import { ModelConversationMessage } from '../../agent/agentConfig/Interfaces';
-import { CompactionEngine } from '../../compaction/core/CompactionEngine';
-import { AbstractMemoryStore } from '../memoryStore/AbstractMemoryStore';
-import { PGChunkMemoryStore } from '../memoryStore/PGChunkMemoryStore/PGChunkMemoryStore';
+import { ModelConversationMessage } from '@agent/agentConfig/Interfaces';
+import { CompactionEngine } from '@compaction/core/CompactionEngine';
+import { AbstractMemoryStore } from '@memory/memoryStore/AbstractMemoryStore';
+import { PGChunkMemoryStore } from '@memory/memoryStore/PGChunkMemoryStore/PGChunkMemoryStore';
 import {
 	MEMORY_TYPE,
 	MemoryFragment,
 	MemoryRetrievalContext,
 	PreferenceGroupIndexEntry,
 } from './Interfaces';
-import { getMeter } from '../../telemetry/Telemetry';
+import { getMeter } from '@telemetry/Telemetry';
 
 type IContextAssemblerDeps = {
 	memoryStore: AbstractMemoryStore;

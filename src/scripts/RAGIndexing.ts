@@ -1,11 +1,11 @@
 import { lstat, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { AppDataSource } from '../database/data-source';
-import { RAGChunkRepository } from '../memory/data/RAGChunkRepository';
-import { RAGDocumentRepository } from '../memory/data/RAGDocumentRepository';
-import { MEMORY_TYPE, type MemoryFragment } from '../memory/core/Interfaces';
-import { PGChunkMemoryStore } from '../memory/memoryStore/PGChunkMemoryStore/PGChunkMemoryStore';
-import { CloudflareReranker } from '../network/rerankingModel/CloudflareReranker';
+import { AppDataSource } from '@database/data-source';
+import { RAGChunkRepository } from '@memory/data/RAGChunkRepository';
+import { RAGDocumentRepository } from '@memory/data/RAGDocumentRepository';
+import { MEMORY_TYPE, type MemoryFragment } from '@memory/core/Interfaces';
+import { PGChunkMemoryStore } from '@memory/memoryStore/PGChunkMemoryStore/PGChunkMemoryStore';
+import { CloudflareReranker } from '@network/rerankingModel/CloudflareReranker';
 
 async function findMarkdownFiles(directory: string): Promise<string[]> {
 	const entries = await readdir(directory, { withFileTypes: true });

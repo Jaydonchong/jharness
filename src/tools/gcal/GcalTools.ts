@@ -1,6 +1,6 @@
 import z from 'zod';
-import { GoogleCalendarApi, ICalendarEvent } from '../../network/google/GoogleCalendarApi';
-import { AgentTool } from '../core/AgentTool';
+import { GoogleCalendarApi, ICalendarEvent } from '@network/google/GoogleCalendarApi';
+import { AgentTool } from '@tools/core/AgentTool';
 
 export const GcalGetCalendarEventInputSchema = z.object({
 	start: z.string().describe('search start date range for events in ISO Format'),

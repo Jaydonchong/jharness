@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
-import { ModelConversationMessage } from '../../agent/agentConfig/Interfaces';
-import { AbstractCompactionPipelineNode } from '../core/AbstractCompactionPipelineNode';
-import { CompactionOutput } from '../core/Interfaces';
+import { ModelConversationMessage } from '@agent/agentConfig/Interfaces';
+import { AbstractCompactionPipelineNode } from '@compaction/core/AbstractCompactionPipelineNode';
+import { CompactionOutput } from '@compaction/core/Interfaces';
 
 type ToolCallContent = {
 	type: 'tool-call';

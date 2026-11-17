@@ -1,11 +1,11 @@
 import { Counter, Histogram } from '@opentelemetry/api';
-import { getActiveSpan, getMeter } from '../../telemetry/Telemetry';
-import { BaselineTokenizer } from '../../utils/BaselineTokenizer';
-import { DomainError, ErrorCode } from '../../utils/ErrorCode';
-import { ILlmProvider } from '../../providers/Interfaces';
-import { AbstractCompactionPipelineNode } from '../core/AbstractCompactionPipelineNode';
-import { buildConversationCompactionPrompt } from '../core/prompts/conversation_compaction.prompt';
-import { CompactionOutput } from '../core/Interfaces';
+import { getActiveSpan, getMeter } from '@telemetry/Telemetry';
+import { BaselineTokenizer } from '@utils/BaselineTokenizer';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
+import { ILlmProvider } from '@providers/Interfaces';
+import { AbstractCompactionPipelineNode } from '@compaction/core/AbstractCompactionPipelineNode';
+import { buildConversationCompactionPrompt } from '@compaction/core/prompts/conversation_compaction.prompt';
+import { CompactionOutput } from '@compaction/core/Interfaces';
 
 const MAX_NUDGE_RETRIES = 2;
 

@@ -4,9 +4,12 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { appendFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
-import { DomainError, ErrorCode } from '../../../utils/ErrorCode';
-import { MEMORY_TYPE, MemoryFragment, MemoryRetrievalContext } from '../../core/Interfaces';
-import { IMemoryRetrievalStrategy, IMemoryWriteStrategy } from '../AbstractMemoryStore';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
+import { MEMORY_TYPE, MemoryFragment, MemoryRetrievalContext } from '@memory/core/Interfaces';
+import {
+	IMemoryRetrievalStrategy,
+	IMemoryWriteStrategy,
+} from '@memory/memoryStore/AbstractMemoryStore';
 
 export type DecisionMetadata = {
 	created: string;

@@ -1,7 +1,7 @@
 import z from 'zod';
-import { ContextAssembler } from '../../memory/core/ContextAssembler';
-import { MEMORY_TYPE, MemoryFragment } from '../../memory/core/Interfaces';
-import { AgentTool } from '../core/AgentTool';
+import { ContextAssembler } from '@memory/core/ContextAssembler';
+import { MEMORY_TYPE, MemoryFragment } from '@memory/core/Interfaces';
+import { AgentTool } from '@tools/core/AgentTool';
 
 const SUPPORTED_MEMORY_TYPES = [
 	MEMORY_TYPE.DECISION,

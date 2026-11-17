@@ -2,11 +2,11 @@
  * Based off of : https://compact-prompt.readthedocs.io/en/latest/
  */
 
-import { ModelConversationMessage } from '../../agent/agentConfig/Interfaces';
-import { BaselineTokenizer } from '../../utils/BaselineTokenizer';
+import { ModelConversationMessage } from '@agent/agentConfig/Interfaces';
+import { BaselineTokenizer } from '@utils/BaselineTokenizer';
 import { CompactionPipeline } from './CompactionPipeline';
 import { CompactionInput, CompactionOutput, CompactionTokenStats } from './Interfaces';
-import { getActiveSpan, getMeter } from '../../telemetry/Telemetry';
+import { getActiveSpan, getMeter } from '@telemetry/Telemetry';
 
 export class CompactionEngine {
 	private readonly tokenizer = new BaselineTokenizer();

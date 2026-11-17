@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { DomainError, ErrorCode } from '../../utils/ErrorCode';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 export const MAX_FILE_SIZE_BYTES = 1024 * 1024;
 

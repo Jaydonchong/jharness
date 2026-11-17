@@ -1,9 +1,9 @@
 import { constants } from 'node:fs';
 import { open } from 'node:fs/promises';
 import z from 'zod';
-import { AgentTool } from '../core/AgentTool';
+import { AgentTool } from '@tools/core/AgentTool';
 import { MAX_FILE_SIZE_BYTES, resolveAbsolutePath } from './WorkspaceFileUtils';
-import { DomainError, ErrorCode } from '../../utils/ErrorCode';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 export const ReadFileInputSchema = z.object({
 	path: z.string().min(1).describe('Absolute path of the file to read'),

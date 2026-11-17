@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { asDomainError, DomainError, ErrorCode } from '../../utils/ErrorCode';
+import { asDomainError, DomainError, ErrorCode } from '@utils/ErrorCode';
 import { AbstractRerankingModel } from './AbstractRerankingModel';
 import { AbstractRerankingInputFormatter } from './rerankingInputFormatters/AbstractRerankingInputFormatter';
 import { CloudflareBgeRerankerInputFormatter } from './rerankingInputFormatters/CloudflareBgeRerankerInputFormatter';

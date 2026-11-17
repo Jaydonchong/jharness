@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits, Message, type TextBasedChannel } from 'discord.js';
-import { asDomainError, DomainError, ErrorCode } from '../../utils/ErrorCode';
-import logger from '../../utils/Logger';
+import { asDomainError, DomainError, ErrorCode } from '@utils/ErrorCode';
+import logger from '@utils/Logger';
 
 export interface DiscordInboundMessage {
 	id: string;

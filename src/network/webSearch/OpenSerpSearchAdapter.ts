@@ -1,5 +1,5 @@
 import { Engine, OpenSERP, SERPError } from '@openserp/sdk';
-import { DomainError, ErrorCode } from '../../utils/ErrorCode';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 import { IWebSearchAdapter, WebSearchRequest, WebSearchResult } from './Interfaces';
 
 const DEFAULT_ENGINE: Engine = 'google';

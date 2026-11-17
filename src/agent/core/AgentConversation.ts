@@ -1,6 +1,6 @@
-import type { AbstractAgentConfig } from '../agentConfig/AbstractAgentConfig';
-import type { ModelConversationMessage } from '../agentConfig/Interfaces';
-import type { CompactionTokenStats } from '../../compaction/core/Interfaces';
+import type { AbstractAgentConfig } from '@agent/agentConfig/AbstractAgentConfig';
+import type { ModelConversationMessage } from '@agent/agentConfig/Interfaces';
+import type { CompactionTokenStats } from '@compaction/core/Interfaces';
 
 export type AgentConversationCompaction = {
 	compactedMessaage: string;

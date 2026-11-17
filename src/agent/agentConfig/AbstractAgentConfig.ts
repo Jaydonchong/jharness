@@ -1,6 +1,6 @@
 import z from 'zod';
-import { AgentTool } from '../../tools/core/AgentTool';
-import { DomainError, ErrorCode } from '../../utils/ErrorCode';
+import { AgentTool } from '@tools/core/AgentTool';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 type IAbstractAgentConfigProps = {
 	systemPrompt: string;

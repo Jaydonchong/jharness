@@ -1,4 +1,4 @@
-import { DomainError, ErrorCode } from '../../utils/ErrorCode';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 export type RerankedDocument = {
 	index: number;

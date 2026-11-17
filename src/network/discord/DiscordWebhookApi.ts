@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { asDomainError, DomainError, ErrorCode } from '../../utils/ErrorCode';
-import logger from '../../utils/Logger';
-import { TextChunker } from '../../utils/chunking/TextChunker';
-import { ChunkingStrategyType } from '../../utils/chunking/strategies/ChunkingStrategy';
+import { asDomainError, DomainError, ErrorCode } from '@utils/ErrorCode';
+import logger from '@utils/Logger';
+import { TextChunker } from '@utils/chunking/TextChunker';
+import { ChunkingStrategyType } from '@utils/chunking/strategies/ChunkingStrategy';
 
 const TIMEOUT = 15_000;
 const MAX_MESSAGE_CHARACTERS = 2_000;

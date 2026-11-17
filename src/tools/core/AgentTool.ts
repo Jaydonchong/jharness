@@ -1,6 +1,6 @@
 import z from 'zod';
-import { asDomainError, ErrorCode } from '../../utils/ErrorCode';
-import logger from '../../utils/Logger';
+import { asDomainError, ErrorCode } from '@utils/ErrorCode';
+import logger from '@utils/Logger';
 
 export type IAgentTool<TInputSchema extends z.ZodType, TOutputSchema extends z.ZodType> = {
 	name: string;

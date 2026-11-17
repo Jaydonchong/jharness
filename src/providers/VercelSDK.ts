@@ -34,10 +34,10 @@ import {
 	ILlmStreamTextOutput,
 	LlmTextStopReason,
 } from './Interfaces';
-import { ModelConversationMessage } from '../agent/agentConfig/Interfaces';
-import { AgentTool } from '../tools/core/AgentTool';
-import { DomainError, ErrorCode } from '../utils/ErrorCode';
-import logger from '../utils/Logger';
+import { ModelConversationMessage } from '@agent/agentConfig/Interfaces';
+import { AgentTool } from '@tools/core/AgentTool';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
+import logger from '@utils/Logger';
 
 const mapAiSdkError = (error: unknown): DomainError => {
 	const failure = RetryError.isInstance(error) ? (error.lastError ?? error) : error;

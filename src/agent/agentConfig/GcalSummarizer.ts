@@ -1,8 +1,8 @@
 import z from 'zod';
-import { GcalGetCalendarEventsTool } from '../../tools/gcal/GcalTools';
-import { RecallTool } from '../../tools/memory/RecallTool';
-import { RememberTool } from '../../tools/memory/RememberTool';
-import { WorkspaceToolSet } from '../../tools/workspace/WorkspaceToolSet';
+import { GcalGetCalendarEventsTool } from '@tools/gcal/GcalTools';
+import { RecallTool } from '@tools/memory/RecallTool';
+import { RememberTool } from '@tools/memory/RememberTool';
+import { WorkspaceToolSet } from '@tools/workspace/WorkspaceToolSet';
 import { AbstractAgentConfig } from './AbstractAgentConfig';
 
 const timeZone = 'Asia/Kuala_Lumpur';

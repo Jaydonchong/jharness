@@ -1,5 +1,5 @@
 import type { Repository } from 'typeorm';
-import type { EvaluationCaseResult, EvaluationResultStore } from '../core/Contracts';
+import type { EvaluationCaseResult, EvaluationResultStore } from '@evaluation/core/Contracts';
 import { EvaluationCaseResultEntity } from './EvaluationCaseResultEntity.entity';
 
 export class TypeOrmEvaluationResultStore implements EvaluationResultStore {

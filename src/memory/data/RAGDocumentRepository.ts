@@ -1,6 +1,6 @@
 import type { EntityManager, QueryDeepPartialEntity } from 'typeorm';
-import { AppDataSource } from '../../database/data-source';
-import { RAGDocument } from '../model/RAGDocument';
+import { AppDataSource } from '@database/data-source';
+import { RAGDocument } from '@memory/model/RAGDocument';
 import { RAGDocumentEntity } from './RAGDocumentEntity.entity';
 
 export class RAGDocumentRepository {

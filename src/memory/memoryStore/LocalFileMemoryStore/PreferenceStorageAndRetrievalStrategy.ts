@@ -2,14 +2,17 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
-import { DomainError, ErrorCode } from '../../../utils/ErrorCode';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 import {
 	MEMORY_TYPE,
 	MemoryFragment,
 	MemoryRetrievalContext,
 	PreferenceGroupIndexEntry,
-} from '../../core/Interfaces';
-import { IMemoryRetrievalStrategy, IMemoryWriteStrategy } from '../AbstractMemoryStore';
+} from '@memory/core/Interfaces';
+import {
+	IMemoryRetrievalStrategy,
+	IMemoryWriteStrategy,
+} from '@memory/memoryStore/AbstractMemoryStore';
 
 const PREFERENCES_FOLDER_NAME = 'preferences';
 const CHUNKS_FOLDER_NAME = 'chunks';

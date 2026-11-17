@@ -1,6 +1,6 @@
-import type { RAGChunkEntity } from '../data/RAGChunkEntity.entity';
-import type { RAGDocumentEntity } from '../data/RAGDocumentEntity.entity';
-import type { ChunkLocation, ChunkingMetadata } from '../../utils/chunking/ChunkingTypes';
+import type { RAGChunkEntity } from '@memory/data/RAGChunkEntity.entity';
+import type { RAGDocumentEntity } from '@memory/data/RAGDocumentEntity.entity';
+import type { ChunkLocation, ChunkingMetadata } from '@utils/chunking/ChunkingTypes';
 
 export type RAGChunkLocation = ChunkLocation;
 export type RAGChunkingMetadata = ChunkingMetadata;

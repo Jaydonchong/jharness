@@ -3,9 +3,9 @@ import { mkdir } from 'node:fs/promises';
 import { once } from 'node:events';
 import path from 'node:path';
 import { finished } from 'node:stream/promises';
-import logger from '../../utils/Logger';
-import type { ILlmToolCall } from '../../providers/Interfaces';
-import type { IToolInvocationLogger } from '../../tools/core/ToolInvoker';
+import logger from '@utils/Logger';
+import type { ILlmToolCall } from '@providers/Interfaces';
+import type { IToolInvocationLogger } from '@tools/core/ToolInvoker';
 import { AgentSessionEventType } from './AgentSession';
 import type { AgentSessionEventContext } from './AgentSession';
 

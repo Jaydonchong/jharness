@@ -1,26 +1,23 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { EmbeddingPurpose } from '../../../network/embeddingModel/AbstractEmbeddingModel';
-import {
-	OllamaEmbedder,
-	OllamaEmbeddingModel,
-} from '../../../network/embeddingModel/OllamaEmbedder';
-import { CloudflareRerankerModel } from '../../../network/rerankingModel/CloudflareReranker';
-import { AbstractRerankingModel } from '../../../network/rerankingModel/AbstractRerankingModel';
-import { ChunkingStrategyType } from '../../../utils/chunking/strategies/ChunkingStrategy';
-import { TextChunker } from '../../../utils/chunking/TextChunker';
-import { AppDataSource } from '../../../database/data-source';
-import { RAGChunkRepository } from '../../data/RAGChunkRepository';
-import { RAGDocumentRepository } from '../../data/RAGDocumentRepository';
+import { EmbeddingPurpose } from '@network/embeddingModel/AbstractEmbeddingModel';
+import { OllamaEmbedder, OllamaEmbeddingModel } from '@network/embeddingModel/OllamaEmbedder';
+import { CloudflareRerankerModel } from '@network/rerankingModel/CloudflareReranker';
+import { AbstractRerankingModel } from '@network/rerankingModel/AbstractRerankingModel';
+import { ChunkingStrategyType } from '@utils/chunking/strategies/ChunkingStrategy';
+import { TextChunker } from '@utils/chunking/TextChunker';
+import { AppDataSource } from '@database/data-source';
+import { RAGChunkRepository } from '@memory/data/RAGChunkRepository';
+import { RAGDocumentRepository } from '@memory/data/RAGDocumentRepository';
 import {
 	MEMORY_TYPE,
 	MemoryFragment,
 	MemoryRetrievalContext,
 	PreferenceGroupIndexEntry,
-} from '../../core/Interfaces';
-import { RAGChunk } from '../../model/RAGChunk';
-import { RAGDocument } from '../../model/RAGDocument';
-import { AbstractMemoryStore } from '../AbstractMemoryStore';
-import { getMeter } from '../../../telemetry/Telemetry';
+} from '@memory/core/Interfaces';
+import { RAGChunk } from '@memory/model/RAGChunk';
+import { RAGDocument } from '@memory/model/RAGDocument';
+import { AbstractMemoryStore } from '@memory/memoryStore/AbstractMemoryStore';
+import { getMeter } from '@telemetry/Telemetry';
 
 const CHUNK_SIZE_LIMIT = 1000;
 const CHUNK_OVERLAP = 100;

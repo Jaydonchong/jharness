@@ -2,7 +2,7 @@ import {
 	MemoryFragment,
 	MemoryRetrievalContext,
 	PreferenceGroupIndexEntry,
-} from '../core/Interfaces';
+} from '@memory/core/Interfaces';
 
 export abstract class AbstractMemoryStore {
 	public abstract store(memory: MemoryFragment): Promise<void>;

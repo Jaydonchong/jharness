@@ -1,4 +1,4 @@
-import type { RAGDocumentEntity } from '../data/RAGDocumentEntity.entity';
+import type { RAGDocumentEntity } from '@memory/data/RAGDocumentEntity.entity';
 
 export type RAGDocumentProps = {
 	id: string;

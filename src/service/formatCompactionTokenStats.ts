@@ -1,4 +1,4 @@
-import type { CompactionTokenStats } from '../compaction/core/Interfaces';
+import type { CompactionTokenStats } from '@compaction/core/Interfaces';
 
 export function formatCompactionTokenStats(stats: CompactionTokenStats): string {
 	const change =

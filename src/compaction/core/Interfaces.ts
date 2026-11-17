@@ -1,4 +1,4 @@
-import { ModelConversationMessage } from '../../agent/agentConfig/Interfaces';
+import { ModelConversationMessage } from '@agent/agentConfig/Interfaces';
 
 export type CompactionInput = {
 	systemPrompt: string;

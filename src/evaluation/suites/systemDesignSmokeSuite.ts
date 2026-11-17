@@ -1,6 +1,6 @@
-import type { EvaluationSuite } from '../EvaluationModule';
-import { ResponsePresentGrader } from '../graders/ResponsePresentGrader';
-import { ToolCallExpectationGrader } from '../graders/ToolCallExpectationGrader';
+import type { EvaluationSuite } from '@evaluation/EvaluationModule';
+import { ResponsePresentGrader } from '@evaluation/graders/ResponsePresentGrader';
+import { ToolCallExpectationGrader } from '@evaluation/graders/ToolCallExpectationGrader';
 
 export const systemDesignSmokeSuite: EvaluationSuite = {
 	id: 'system-design-smoke',

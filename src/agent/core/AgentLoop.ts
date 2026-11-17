@@ -1,14 +1,14 @@
-import { ToolInvoker } from '../../tools/core/ToolInvoker';
-import { DomainError, ErrorCode } from '../../utils/ErrorCode';
+import { ToolInvoker } from '@tools/core/ToolInvoker';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 import {
 	ILlmGenerateTextInput,
 	ILlmGenerateTextOutput,
 	ILlmToolCall,
 	LlmTextStopReason,
-} from '../../providers/Interfaces';
+} from '@providers/Interfaces';
 import { AgentConversation } from './AgentConversation';
-import type { InterruptionDetails } from '../../harness/core/SessionState';
-import { TraceScope, WithSpan } from '../../telemetry/Decorators';
+import type { InterruptionDetails } from '@harness/core/SessionState';
+import { TraceScope, WithSpan } from '@telemetry/Decorators';
 
 export interface ISessionResult {
 	reply: string;

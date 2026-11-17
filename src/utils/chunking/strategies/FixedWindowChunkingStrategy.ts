@@ -1,4 +1,4 @@
-import type { ChunkDraft, ChunkingConfig, ChunkingInput } from '../ChunkingTypes';
+import type { ChunkDraft, ChunkingConfig, ChunkingInput } from '@utils/chunking/ChunkingTypes';
 import { ChunkingStrategyType, ChunkingStrategy } from './ChunkingStrategy';
 
 export class FixedWindowChunkingStrategy extends ChunkingStrategy {

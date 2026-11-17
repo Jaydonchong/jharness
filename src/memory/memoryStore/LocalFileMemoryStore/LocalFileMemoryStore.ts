@@ -1,13 +1,13 @@
 import { mkdirSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
-import { DomainError, ErrorCode } from '../../../utils/ErrorCode';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 import {
 	MEMORY_TYPE,
 	MemoryFragment,
 	MemoryRetrievalContext,
 	PreferenceGroupIndexEntry,
-} from '../../core/Interfaces';
-import { AbstractMemoryStore } from '../AbstractMemoryStore';
+} from '@memory/core/Interfaces';
+import { AbstractMemoryStore } from '@memory/memoryStore/AbstractMemoryStore';
 import { LocalFileMemoryDecisionStoreStrategy } from './DecisionStorageAndRetrievalStrategy';
 import { PreferenceStorageAndRetrievalStrategy } from './PreferenceStorageAndRetrievalStrategy';
 import { SessionSummaryStorageAndRetrievalStrategy } from './SessionSummaryStorageAndRetrievalStrategy';

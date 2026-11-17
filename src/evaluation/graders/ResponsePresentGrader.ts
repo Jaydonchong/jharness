@@ -1,4 +1,4 @@
-import type { EvaluationGrader } from '../core/Contracts';
+import type { EvaluationGrader } from '@evaluation/core/Contracts';
 
 export class ResponsePresentGrader implements EvaluationGrader {
 	public readonly id = 'response-present';

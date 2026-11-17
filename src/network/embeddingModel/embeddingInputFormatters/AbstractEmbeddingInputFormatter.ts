@@ -1,5 +1,5 @@
-import { DomainError, ErrorCode } from '../../../utils/ErrorCode';
-import { EmbeddingPurpose } from '../AbstractEmbeddingModel';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
+import { EmbeddingPurpose } from '@network/embeddingModel/AbstractEmbeddingModel';
 
 export abstract class AbstractEmbeddingInputFormatter {
 	public abstract format(text: string, purpose: EmbeddingPurpose): string;

@@ -1,8 +1,8 @@
-import { DomainError, ErrorCode } from '../../utils/ErrorCode';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 import { AbstractCompactionPipelineNode } from './AbstractCompactionPipelineNode';
 import { CompactionInput, CompactionOutput, createEmptyCompactionOutput } from './Interfaces';
-import { getActiveSpan, getMeter } from '../../telemetry/Telemetry';
-import { TraceScope, WithSpan } from '../../telemetry/Decorators';
+import { getActiveSpan, getMeter } from '@telemetry/Telemetry';
+import { TraceScope, WithSpan } from '@telemetry/Decorators';
 
 @TraceScope('compaction-pipeline')
 export class CompactionPipeline {

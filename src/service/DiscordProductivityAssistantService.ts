@@ -1,11 +1,11 @@
-import { AGcalSummarizer } from '../agent/agentConfig/GcalSummarizer';
-import { AgentSession } from '../harness/core/AgentSession';
-import { Harness } from '../harness/core/Harness';
-import { DiscordBotClient, type DiscordInboundMessage } from '../network/discord/DiscordBotClient';
-import { DiscordWebhookApi } from '../network/discord/DiscordWebhookApi';
-import { ILlmProvider } from '../providers/Interfaces';
-import { getActiveSpan } from '../telemetry/Telemetry';
-import { TraceScope, WithSpan } from '../telemetry/Decorators';
+import { AGcalSummarizer } from '@agent/agentConfig/GcalSummarizer';
+import { AgentSession } from '@harness/core/AgentSession';
+import { Harness } from '@harness/core/Harness';
+import { DiscordBotClient, type DiscordInboundMessage } from '@network/discord/DiscordBotClient';
+import { DiscordWebhookApi } from '@network/discord/DiscordWebhookApi';
+import { ILlmProvider } from '@providers/Interfaces';
+import { getActiveSpan } from '@telemetry/Telemetry';
+import { TraceScope, WithSpan } from '@telemetry/Decorators';
 import { AbstractService } from './AbstractService';
 import { formatCompactionTokenStats } from './formatCompactionTokenStats';
 

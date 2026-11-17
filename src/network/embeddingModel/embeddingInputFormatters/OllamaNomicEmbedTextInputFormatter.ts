@@ -1,4 +1,4 @@
-import { EmbeddingPurpose } from '../AbstractEmbeddingModel';
+import { EmbeddingPurpose } from '@network/embeddingModel/AbstractEmbeddingModel';
 import { AbstractEmbeddingInputFormatter } from './AbstractEmbeddingInputFormatter';
 
 export class OllamaNomicEmbedTextInputFormatter extends AbstractEmbeddingInputFormatter {

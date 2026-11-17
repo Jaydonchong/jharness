@@ -9,7 +9,7 @@ import {
 	RelationId,
 } from 'typeorm';
 import { RAGDocumentEntity } from './RAGDocumentEntity.entity';
-import type { RAGChunkLocation, RAGChunkingMetadata } from '../model/RAGChunk';
+import type { RAGChunkLocation, RAGChunkingMetadata } from '@memory/model/RAGChunk';
 
 @Entity({ name: 'rag_chunks' })
 @Index('IDX_rag_chunks_document_id', ['document'])

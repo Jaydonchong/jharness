@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto';
-import type { ChunkDraft, ChunkingConfig, ChunkingInput, ChunkingMetadata } from '../ChunkingTypes';
+import type {
+	ChunkDraft,
+	ChunkingConfig,
+	ChunkingInput,
+	ChunkingMetadata,
+} from '@utils/chunking/ChunkingTypes';
 
 export enum ChunkingStrategyType {
 	PARAGRAPH = 'PARAGRAPH',

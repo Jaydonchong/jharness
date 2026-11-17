@@ -1,4 +1,4 @@
-import { getMeter } from '../telemetry/Telemetry';
+import { getMeter } from '@telemetry/Telemetry';
 
 export abstract class AbstractService {
 	public abstract run(): Promise<void>;

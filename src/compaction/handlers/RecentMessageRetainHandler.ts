@@ -1,5 +1,5 @@
-import { AbstractCompactionPipelineNode } from '../core/AbstractCompactionPipelineNode';
-import { CompactionOutput } from '../core/Interfaces';
+import { AbstractCompactionPipelineNode } from '@compaction/core/AbstractCompactionPipelineNode';
+import { CompactionOutput } from '@compaction/core/Interfaces';
 
 type RecentMessageRetainerHandlerProps = {
 	threshold: number; // How many user messages to retain

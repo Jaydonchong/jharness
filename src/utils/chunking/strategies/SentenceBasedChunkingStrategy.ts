@@ -1,5 +1,5 @@
 import { ChunkingStrategyType, ChunkingStrategy } from './ChunkingStrategy';
-import type { ChunkDraft, ChunkingConfig, ChunkingInput } from '../ChunkingTypes';
+import type { ChunkDraft, ChunkingConfig, ChunkingInput } from '@utils/chunking/ChunkingTypes';
 
 const SENTENCE_END = /[.!?]+(?:["'’”)}\]]+)?(?=\s|$)/g;
 

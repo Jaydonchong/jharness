@@ -1,5 +1,5 @@
-import type { AgentSession } from '../../harness/core/AgentSession';
-import type { EvaluationTarget } from '../core/Contracts';
+import type { AgentSession } from '@harness/core/AgentSession';
+import type { EvaluationTarget } from '@evaluation/core/Contracts';
 
 type EvaluationSession = Pick<AgentSession<unknown>, 'id' | 'messages' | 'sendMessage'>;
 

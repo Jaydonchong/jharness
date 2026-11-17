@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { GoogleAuth } from 'google-auth-library';
-import { asDomainError, DomainError, ErrorCode } from '../../utils/ErrorCode';
+import { asDomainError, DomainError, ErrorCode } from '@utils/ErrorCode';
 
 export type ICalendarListEntry = {
 	id: string;

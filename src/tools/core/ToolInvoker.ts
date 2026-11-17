@@ -1,9 +1,9 @@
-import { AbstractAgentConfig } from '../../agent/agentConfig/AbstractAgentConfig';
-import { ModelConversationMessage } from '../../agent/agentConfig/Interfaces';
-import { ILlmToolCall } from '../../providers/Interfaces';
+import { AbstractAgentConfig } from '@agent/agentConfig/AbstractAgentConfig';
+import { ModelConversationMessage } from '@agent/agentConfig/Interfaces';
+import { ILlmToolCall } from '@providers/Interfaces';
 import { AgentToolExecutionContext } from './AgentTool';
-import { getActiveSpan, getMeter } from '../../telemetry/Telemetry';
-import { TraceScope, WithSpan } from '../../telemetry/Decorators';
+import { getActiveSpan, getMeter } from '@telemetry/Telemetry';
+import { TraceScope, WithSpan } from '@telemetry/Decorators';
 
 const DEFAULT_MAX_RETRIES = 3;
 

@@ -1,5 +1,5 @@
-import { RecallTool } from '../../tools/memory/RecallTool';
-import { WebSearchTool } from '../../tools/webSearch/WebSearchTool';
+import { RecallTool } from '@tools/memory/RecallTool';
+import { WebSearchTool } from '@tools/webSearch/WebSearchTool';
 import { AbstractAgentConfig } from './AbstractAgentConfig';
 
 const SYSTEM_PROMPT = `

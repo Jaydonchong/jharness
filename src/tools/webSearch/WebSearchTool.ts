@@ -1,6 +1,6 @@
 import z from 'zod';
-import { IWebSearchAdapter } from '../../network/webSearch/Interfaces';
-import { AgentTool } from '../core/AgentTool';
+import { IWebSearchAdapter } from '@network/webSearch/Interfaces';
+import { AgentTool } from '@tools/core/AgentTool';
 
 export const WebSearchInputSchema = z.object({
 	query: z.string().trim().min(1).max(300).describe('The web search query'),
