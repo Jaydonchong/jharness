@@ -27,6 +27,17 @@ export type WydTaskPatch = {
 	tags?: string[];
 };
 
+export type WydTaskCreate = {
+	title: string;
+	folderId: string;
+	description?: string;
+	notesMd?: string | null;
+	status?: string;
+	priority?: number;
+	expectedAt?: string | null;
+	tags?: string[];
+};
+
 type WydTasksResponse = {
 	data: WydTask[];
 	meta: { total: number };
@@ -91,6 +102,13 @@ export class WydTaskApi {
 		return response.data;
 	}
 
+	async createTask(input: WydTaskCreate): Promise<WydTask> {
+		this.assertAllowedFolder(input);
+		const response = await this.request(() => this.http.post<WydTaskResponse>('tasks', input));
+		this.assertAllowedFolder(response.data);
+		return response.data;
+	}
+
 	async updateTask(taskId: string, patch: WydTaskPatch): Promise<WydTask> {
 		// Wyd PATCH has no folder-scoped precondition, so this check cannot exclude concurrent moves.
 		await this.getTask(taskId);
@@ -101,7 +119,7 @@ export class WydTaskApi {
 		return response.data;
 	}
 
-	private assertAllowedFolder(task: WydTask): void {
+	private assertAllowedFolder(task: Pick<WydTask, 'folderId'>): void {
 		if (!task.folderId || !this.allowedFolderIds.has(task.folderId)) {
 			throw new DomainError(
 				ErrorCode.AI_TOOL_CALL_ERROR,

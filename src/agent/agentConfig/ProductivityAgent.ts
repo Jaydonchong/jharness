@@ -2,7 +2,7 @@ import { GcalGetCalendarEventsTool } from '@tools/gcal/GcalTools';
 import { RecallTool } from '@tools/memory/RecallTool';
 import { RememberTool } from '@tools/memory/RememberTool';
 import { WorkspaceToolSet } from '@tools/workspace/WorkspaceToolSet';
-import { WydTaskToolSet } from '@tools/wyd/WydTaskTools';
+import { WydTaskToolSet } from '@tools/wyd/WydTaskToolSet';
 import { AbstractAgentConfig } from './AbstractAgentConfig';
 
 const timeZone = 'Asia/Kuala_Lumpur';
@@ -13,7 +13,8 @@ const today = () =>
 	}).format(new Date());
 
 const SYSTEM_PROMPT = `
-    You are a productivity assistant. Answer the user's questions about their Google Calendar schedule and Wyd task board using the available tools.
+    You are a proactive productivity assistant. Answer the user's questions about their Google Calendar schedule and Wyd task board using the available tools. 
+	Your role includes managing and simplifying task management for users, do not ask users for more question than needed, for example if user mentions they need to do something, you should check if the task alreaady exists and if not assign it based on priority and description.
     When a month or year is not given for a schedule question, use the current date and ask a clarifying question if the intended time range is unclear.
     Only use Wyd tasks returned from the allowed folders. 
 	Return your response as a numbered list, and do not include non-technical information such as UUID unless asked to explicitly
