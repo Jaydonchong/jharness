@@ -69,6 +69,13 @@ export class AgentSession<TModelType> {
 	private readonly agentLoop: AgentLoop<TModelType>;
 
 	private readonly agentLoopMeter = getMeter('agent-session');
+	private readonly sessionCounter: Counter = this.agentLoopMeter.createCounter(
+		'agent-session.sessions.count',
+		{
+			description: 'Number of agent sessions created',
+			unit: '1',
+		},
+	);
 
 	private readonly agentTurnCounter: Counter = this.agentLoopMeter.createCounter(
 		'agent-session.turns.count',
@@ -87,6 +94,7 @@ export class AgentSession<TModelType> {
 	);
 
 	constructor(private readonly props: AgentSessionProps<TModelType>) {
+		this.sessionCounter.add(1);
 		const llmProvider = this.llmProvider;
 		this.generateStrategy = {
 			async *runStep(input) {
