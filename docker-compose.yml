@@ -33,6 +33,36 @@ services:
             - default
             - telemetry
 
+    evaluation-worker:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        command:
+            [
+                'node',
+                '--require',
+                './dist/telemetry/instrumentation.js',
+                './dist/scripts/RunOnlineEvaluationWorker.js',
+            ]
+        init: true
+        restart: unless-stopped
+        env_file:
+            - .env
+        environment:
+            POSTGRES_HOST: postgres
+            POSTGRES_PORT: 5432
+            OTEL_SERVICE_NAME: ${EVALUATION_WORKER_OTEL_SERVICE_NAME:-jharness-evaluation-worker}
+            OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+            OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+            TEMPO_QUERY_URL: ${TEMPO_QUERY_URL:-http://tempo:3200}
+        depends_on:
+            postgres:
+                condition: service_healthy
+        networks:
+            - default
+            - telemetry
+            - observability_backend
+
     postgres:
         image: pgvector/pgvector:pg17
         restart: unless-stopped
@@ -57,4 +87,7 @@ volumes:
 networks:
     telemetry:
         name: telemetry
+        external: true
+    observability_backend:
+        name: observability_backend
         external: true

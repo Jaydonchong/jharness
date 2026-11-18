@@ -5,6 +5,10 @@ import { EvaluationTrialEntity } from './EvaluationTrialEntity.entity';
 export class EvaluationTrialRepository implements EvaluationTrialStore {
 	public constructor(private readonly repository: Repository<EvaluationTrialEntity>) {}
 
+	public async hasTrial(suiteRunId: string, taskId: string): Promise<boolean> {
+		return (await this.repository.findOneBy({ suiteRunId, taskId })) !== null;
+	}
+
 	public async save(trial: EvaluationTrial): Promise<void> {
 		await this.repository.save({
 			suiteRunId: trial.suiteRunId,

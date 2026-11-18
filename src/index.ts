@@ -36,11 +36,14 @@ import { AppDataSource } from '@database/data-source';
 import logger from '@utils/Logger';
 import { OTLPsdk } from '@telemetry/instrumentation';
 import { PgBossModule } from '@queue/PgBossModule';
+import { PgBossOnlineEvaluationPublisher } from '@queue/OnlineEvaluationQueue';
 
 void (async () => {
 	const dataSource = await AppDataSource.initialize();
 	const pgBossModule = new PgBossModule();
 	await pgBossModule.start();
+	const onlineEvaluationPublisher = new PgBossOnlineEvaluationPublisher(pgBossModule.boss);
+	await onlineEvaluationPublisher.start();
 	logger.info('dataSource initialized', {
 		intialized: dataSource.isInitialized,
 		database: 'postgres',
@@ -132,6 +135,7 @@ void (async () => {
 		model: VERCEL_AI_MODELS.DEFAULT,
 		discordBotClient,
 		discordWebhookApi,
+		onlineEvaluationPublisher,
 	});
 	const systemDesignService = new SystemDesignDiscordService({
 		systemDesignAgent: new ASystemDesign(memoryTools[1], webSearchTool),
@@ -140,6 +144,7 @@ void (async () => {
 		model: VERCEL_AI_MODELS.DEFAULT,
 		discordBotClient,
 		discordWebhookApi,
+		onlineEvaluationPublisher,
 	});
 
 	// let streamedResponse = "";

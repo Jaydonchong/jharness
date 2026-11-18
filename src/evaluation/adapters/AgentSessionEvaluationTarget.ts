@@ -1,5 +1,6 @@
 import type { AgentSession } from '@harness/core/AgentSession';
 import type { EvaluationTarget } from '@evaluation/core/Contracts';
+import { extractToolCallNames } from './extractToolCallNames';
 
 type EvaluationSession = Pick<AgentSession<unknown>, 'id' | 'messages' | 'sendMessage'>;
 
@@ -27,14 +28,7 @@ export class AgentSessionEvaluationTarget implements EvaluationTarget {
 			error,
 			metadata: {
 				sessionId: session.id,
-				toolCalls: session.messages.flatMap((message) => {
-					if (message.role !== 'assistant' || !Array.isArray(message.content)) return [];
-					return message.content.flatMap((part) =>
-						part.type === 'tool-call' && typeof part.toolName === 'string'
-							? [part.toolName]
-							: [],
-					);
-				}),
+				toolCalls: extractToolCallNames(session.messages),
 			},
 		};
 	}

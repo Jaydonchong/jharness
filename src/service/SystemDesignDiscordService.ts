@@ -2,12 +2,15 @@ import { AgentSession } from '@harness/core/AgentSession';
 import { Harness } from '@harness/core/Harness';
 import { DiscordBotClient, type DiscordInboundMessage } from '@network/discord/DiscordBotClient';
 import { DiscordWebhookApi } from '@network/discord/DiscordWebhookApi';
+import type { OnlineEvaluationPublisher } from '@evaluation/online/Contracts';
+import { createOnlineEvaluationMessage } from '@evaluation/online/createOnlineEvaluationMessage';
 import { ILlmProvider } from '@providers/Interfaces';
 import { ASystemDesign } from '@agent/agentConfig/SystemDesign';
 import { getActiveSpan } from '@telemetry/Telemetry';
 import { TraceScope, WithSpan } from '@telemetry/Decorators';
 import { AbstractService } from './AbstractService';
 import { formatCompactionTokenStats } from './formatCompactionTokenStats';
+import logger from '@utils/Logger';
 
 type SystemDesignDiscordServiceDeps<TModelType> = {
 	systemDesignAgent: ASystemDesign;
@@ -16,6 +19,7 @@ type SystemDesignDiscordServiceDeps<TModelType> = {
 	model: TModelType;
 	discordBotClient: DiscordBotClient;
 	discordWebhookApi: DiscordWebhookApi;
+	onlineEvaluationPublisher: OnlineEvaluationPublisher;
 };
 
 @TraceScope('service.discord-system-design')
@@ -61,6 +65,31 @@ export class SystemDesignDiscordService<TModelType> extends AbstractService {
 		}
 		span?.setAttribute('action', 'message');
 		const response = await this.session.sendMessage(message.content);
+		try {
+			await this.deps.discordWebhookApi.sendMessage(
+				'**Bot**: Message received, processing...',
+			);
+			if (!span) throw new Error('Cannot enqueue online evaluation without an active span');
+			const completedAt = new Date().toISOString();
+			await this.deps.onlineEvaluationPublisher.enqueue(
+				createOnlineEvaluationMessage(span, {
+					sessionId: this.session.id,
+					agentName: this.deps.systemDesignAgent.name,
+					input: message.content,
+					output: {
+						text: response.reply,
+						structuredOutput: response.output,
+					},
+					completedAt,
+				}),
+			);
+		} catch (error) {
+			logger.error('Failed to enqueue online evaluation', {
+				sessionId: this.session.id,
+				agentName: this.deps.systemDesignAgent.name,
+				error,
+			});
+		}
 		await this.deps.discordWebhookApi.sendMessage(response.reply);
 		return false;
 	}

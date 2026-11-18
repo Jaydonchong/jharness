@@ -51,6 +51,7 @@ export type EvaluationTrial = {
 };
 
 export interface EvaluationTrialStore {
+	hasTrial(suiteRunId: string, taskId: string): Promise<boolean>;
 	save(trial: EvaluationTrial): Promise<void>;
 }
 

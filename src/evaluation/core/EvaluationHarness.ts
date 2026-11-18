@@ -7,7 +7,8 @@ import type {
 	EvaluationTarget,
 	GraderOutcome,
 } from './Contracts';
-import { getMeter, getTracer } from '@telemetry/Telemetry';
+import { getTracer } from '@telemetry/Telemetry';
+import { EvaluationMetrics } from './EvaluationMetrics';
 
 export type EvaluationHarnessDeps = {
 	target: EvaluationTarget;
@@ -15,15 +16,7 @@ export type EvaluationHarnessDeps = {
 };
 
 export class EvaluationHarness {
-	private readonly meter = getMeter('evaluation');
-	private readonly trialCounter = this.meter.createCounter('evaluation.trials.count', {
-		description: 'Number of completed evaluation trials',
-		unit: '1',
-	});
-	private readonly scoreHistogram = this.meter.createHistogram('evaluation.score', {
-		description: 'Scores assigned by evaluation graders',
-		unit: '1',
-	});
+	private readonly metrics = new EvaluationMetrics();
 
 	public constructor(private readonly deps: EvaluationHarnessDeps) {}
 
@@ -92,15 +85,13 @@ export class EvaluationHarness {
 						};
 
 						await this.deps.trialStore.save(trial);
-						this.trialCounter.add(1, {
-							'evaluation.suite.id': suite.id,
-							'test.case.result.status': trial.passed ? 'pass' : 'fail',
-						});
+						const metricContext = {
+							mode: 'offline' as const,
+							evaluationName: suite.id,
+						};
+						this.metrics.recordTrial(metricContext, trial.passed);
 						for (const [graderId, outcome] of Object.entries(graderOutcomes)) {
-							this.scoreHistogram.record(outcome.score, {
-								'evaluation.suite.id': suite.id,
-								'evaluation.grader.id': graderId,
-							});
+							this.metrics.recordScore(metricContext, graderId, outcome.score);
 						}
 						trials.push(trial);
 					}
