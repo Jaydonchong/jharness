@@ -10,7 +10,7 @@ import { ASystemDesign } from '@agent/agentConfig/SystemDesign';
 import { DiscordBotClient } from '@network/discord/DiscordBotClient';
 import { DiscordProductivityAssistantService } from '@service/DiscordProductivityAssistantService';
 import { SystemDesignDiscordService } from '@service/SystemDesignDiscordService';
-import { AGcalSummarizer } from '@agent/agentConfig/GcalSummarizer';
+import { ProductivityAgent } from '@agent/agentConfig/ProductivityAgent';
 import { CompactionPipeline } from '@compaction/core/CompactionPipeline';
 import { ModelSummarizer } from '@compaction/handlers/ModelSummarizerHandler.ts';
 import { RecentMessageRetainHandler } from '@compaction/handlers/RecentMessageRetainHandler';
@@ -101,7 +101,7 @@ void (async () => {
 		new WalkDirectoryTool(),
 	];
 	const wydTaskTools = createWydTaskToolSetFromEnv();
-	const gcalSummarizerAgent = new AGcalSummarizer(
+	const productivityAgent = new ProductivityAgent(
 		gcalGetCalendarEventsTool,
 		memoryTools,
 		workspaceTools,
@@ -118,7 +118,7 @@ void (async () => {
 	});
 	const session = harness.newSession({
 		llmProvider: vercelSDK,
-		agent: gcalSummarizerAgent,
+		agent: productivityAgent,
 		model: VERCEL_AI_MODELS.DEFAULT,
 	});
 
@@ -129,7 +129,7 @@ void (async () => {
 	// await discordApi.sendMessage(response)
 
 	const productivityService = new DiscordProductivityAssistantService({
-		gcalSummarizerAgent,
+		productivityAgent,
 		harness,
 		llmProvider: vercelSDK,
 		model: VERCEL_AI_MODELS.DEFAULT,

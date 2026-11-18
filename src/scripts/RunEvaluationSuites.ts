@@ -5,7 +5,7 @@ import { GcalGetCalendarEventsTool } from '@tools/gcal/GcalTools';
 import { WebSearchTool } from '@tools/webSearch/WebSearchTool';
 import { Harness } from '@harness/core/Harness';
 import { ASystemDesign } from '@agent/agentConfig/SystemDesign';
-import { AGcalSummarizer } from '@agent/agentConfig/GcalSummarizer';
+import { ProductivityAgent } from '@agent/agentConfig/ProductivityAgent';
 import { CompactionPipeline } from '@compaction/core/CompactionPipeline';
 import { ModelSummarizer } from '@compaction/handlers/ModelSummarizerHandler.ts';
 import { RecentMessageRetainHandler } from '@compaction/handlers/RecentMessageRetainHandler';
@@ -83,7 +83,7 @@ const run = async (): Promise<void> => {
 			webSearchAdapter: new OpenSerpSearchAdapter({ client: openSerpClient }),
 		});
 		const agents = {
-			'gcal-summarizer': new AGcalSummarizer(calendarTool, memoryTools, workspaceTools),
+			'gcal-summarizer': new ProductivityAgent(calendarTool, memoryTools, workspaceTools),
 			'system-design': new ASystemDesign(memoryTools[1], webSearchTool),
 		};
 		appHarness = new Harness({ compactionEngine, contextAssembler });

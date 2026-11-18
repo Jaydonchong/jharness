@@ -1,4 +1,4 @@
-import { AGcalSummarizer } from '@agent/agentConfig/GcalSummarizer';
+import { ProductivityAgent } from '@agent/agentConfig/ProductivityAgent';
 import { AgentSession } from '@harness/core/AgentSession';
 import { Harness } from '@harness/core/Harness';
 import type { DiscordInboundMessage } from '@network/discord/DiscordBotClient';
@@ -11,7 +11,7 @@ import { formatCompactionTokenStats } from './formatCompactionTokenStats';
 import logger from '@utils/Logger';
 
 type IDiscordProductivityAssistantServiceDeps<TModelType> = {
-	gcalSummarizerAgent: AGcalSummarizer;
+	productivityAgent: ProductivityAgent;
 	harness: Harness;
 	llmProvider: ILlmProvider<TModelType>;
 	model: TModelType;
@@ -25,7 +25,7 @@ export class DiscordProductivityAssistantService<TModelType> {
 	constructor(private readonly deps: IDiscordProductivityAssistantServiceDeps<TModelType>) {
 		this.session = this.deps.harness.newSession({
 			llmProvider: this.deps.llmProvider,
-			agent: this.deps.gcalSummarizerAgent,
+			agent: this.deps.productivityAgent,
 			model: this.deps.model,
 		});
 	}
@@ -65,7 +65,7 @@ export class DiscordProductivityAssistantService<TModelType> {
 			await this.deps.onlineEvaluationPublisher.enqueue(
 				createOnlineEvaluationMessage(span, {
 					sessionId: this.session.id,
-					agentName: this.deps.gcalSummarizerAgent.name,
+					agentName: this.deps.productivityAgent.name,
 					input: msg.content,
 					output: {
 						text: response.reply,
@@ -77,7 +77,7 @@ export class DiscordProductivityAssistantService<TModelType> {
 		} catch (error) {
 			logger.error('Failed to enqueue online evaluation', {
 				sessionId: this.session.id,
-				agentName: this.deps.gcalSummarizerAgent.name,
+				agentName: this.deps.productivityAgent.name,
 				error,
 			});
 		}

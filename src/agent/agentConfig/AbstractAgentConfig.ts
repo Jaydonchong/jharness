@@ -12,7 +12,7 @@ type IAbstractAgentConfigProps = {
 	outputSchema?: z.ZodType;
 	/**
 	 * For appending dynamic context
-	 * Context: Ran into issue where GcalSummarizer thought year was 2025 based on training data
+	 * Context: The productivity agent once inferred the wrong year from training data.
 	 * Appending the date to system prompt will affect caching, hence better approach is to append
 	 * on new message
 	 */

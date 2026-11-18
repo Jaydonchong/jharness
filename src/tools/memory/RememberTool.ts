@@ -11,9 +11,28 @@ const SUPPORTED_MEMORY_TYPES = [
 	MEMORY_TYPE.SESSION_SUMMARY,
 ] as const;
 
+const tagsSchema = z
+	.union([
+		z.array(z.string()),
+		z.string().transform((value, context) => {
+			try {
+				const parsed: unknown = JSON.parse(value);
+				if (Array.isArray(parsed) && parsed.every((tag) => typeof tag === 'string')) {
+					return parsed;
+				}
+			} catch {
+				// Report malformed encoded arrays through the schema validation error below.
+			}
+
+			context.addIssue({ code: 'custom', message: 'Expected an array of strings' });
+			return z.NEVER;
+		}),
+	])
+	.describe('Tags used to classify this memory; provide an array of strings');
+
 const CommonMemoryFields = {
 	content: z.string().describe('The memory content to store'),
-	tags: z.array(z.string()).describe('Tags used to classify this memory'),
+	tags: tagsSchema,
 	origin: z.enum(['system', 'user']),
 };
 

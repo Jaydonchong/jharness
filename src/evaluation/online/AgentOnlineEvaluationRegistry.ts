@@ -33,7 +33,7 @@ export function createAgentOnlineEvaluationRegistry(
 	};
 
 	return {
-		'gcal-summarizer': profile,
+		'productivity-agent': profile,
 		'system-design': profile,
 	};
 }
