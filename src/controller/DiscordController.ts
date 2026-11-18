@@ -3,6 +3,7 @@ import { DiscordBotClient } from '@network/discord/DiscordBotClient';
 import { getActiveSpan } from '@telemetry/Telemetry';
 import { TraceScope, WithSpan } from '@telemetry/Decorators';
 import logger from '@utils/Logger';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 /** Return true to stop routing further messages for that channel. */
 export type DiscordMessageHandler = (message: DiscordInboundMessage) => Promise<boolean>;
@@ -26,13 +27,22 @@ export class DiscordController {
 		this.routesByChannelName = new Map(normalizedRoutes);
 
 		if (this.routesByChannelName.size === 0) {
-			throw new Error('At least one Discord channel route must be configured');
+			throw new DomainError(
+				ErrorCode.AI_PROVIDER_CONFIGURATION_ERROR,
+				'At least one Discord channel route must be configured',
+			);
 		}
 		if (this.routesByChannelName.size !== normalizedRoutes.length) {
-			throw new Error('Discord channel route names must be unique');
+			throw new DomainError(
+				ErrorCode.AI_PROVIDER_CONFIGURATION_ERROR,
+				'Discord channel route names must be unique',
+			);
 		}
 		if (options.allowedUserIds.size === 0) {
-			throw new Error('At least one allowed Discord user ID must be configured');
+			throw new DomainError(
+				ErrorCode.AI_PROVIDER_CONFIGURATION_ERROR,
+				'At least one allowed Discord user ID must be configured',
+			);
 		}
 	}
 

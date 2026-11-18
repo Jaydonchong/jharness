@@ -31,6 +31,7 @@ import type { EvaluationSuiteRun } from '@evaluation/EvaluationModule';
 import { AgentSuiteRegistry } from '@evaluation/AgentSuiteRegistry';
 import { EvaluationTrialEntity } from '@evaluation/data/EvaluationTrialEntity.entity';
 import { EvaluationTrialRepository } from '@evaluation/data/EvaluationTrialRepository';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 const run = async (): Promise<void> => {
 	let appHarness: Harness | undefined;
@@ -93,7 +94,10 @@ const run = async (): Promise<void> => {
 		for (const [agentName, suites] of Object.entries(AgentSuiteRegistry)) {
 			const agent = agents[agentName as keyof typeof agents];
 			if (!agent)
-				throw new Error(`No agent config registered for evaluation key: ${agentName}`);
+				throw new DomainError(
+					ErrorCode.AI_PROVIDER_CONFIGURATION_ERROR,
+					`No agent config registered for evaluation key: ${agentName}`,
+				);
 
 			for (const suite of suites) {
 				const evaluationHarness = new EvaluationHarness({

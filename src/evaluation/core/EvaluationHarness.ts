@@ -9,6 +9,7 @@ import type {
 } from './Contracts';
 import { getTracer } from '@telemetry/Telemetry';
 import { EvaluationMetrics } from './EvaluationMetrics';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 export type EvaluationHarnessDeps = {
 	target: EvaluationTarget;
@@ -21,19 +22,32 @@ export class EvaluationHarness {
 	public constructor(private readonly deps: EvaluationHarnessDeps) {}
 
 	public async runSuite(suite: EvaluationSuite): Promise<EvaluationSuiteRun> {
-		if (suite.tasks.length === 0) throw new Error(`Evaluation suite has no tasks: ${suite.id}`);
+		if (suite.tasks.length === 0)
+			throw new DomainError(
+				ErrorCode.VALIDATION_ERROR,
+				`Evaluation suite has no tasks: ${suite.id}`,
+			);
 		const taskIds = new Set<string>();
 		for (const task of suite.tasks) {
 			if (taskIds.has(task.id)) {
-				throw new Error(`Duplicate evaluation task ID: ${task.id}`);
+				throw new DomainError(
+					ErrorCode.VALIDATION_ERROR,
+					`Duplicate evaluation task ID: ${task.id}`,
+				);
 			}
 			taskIds.add(task.id);
 			if (task.graders.length === 0) {
-				throw new Error(`Evaluation task has no graders: ${task.id}`);
+				throw new DomainError(
+					ErrorCode.VALIDATION_ERROR,
+					`Evaluation task has no graders: ${task.id}`,
+				);
 			}
 			const graderIds = new Set(task.graders.map((grader) => grader.id));
 			if (graderIds.size !== task.graders.length) {
-				throw new Error(`Evaluation grader IDs must be unique in task: ${task.id}`);
+				throw new DomainError(
+					ErrorCode.VALIDATION_ERROR,
+					`Evaluation grader IDs must be unique in task: ${task.id}`,
+				);
 			}
 		}
 

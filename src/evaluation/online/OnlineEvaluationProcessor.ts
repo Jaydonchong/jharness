@@ -11,6 +11,7 @@ import type {
 } from './Contracts';
 import logger from '@utils/Logger';
 import { getTracer } from '@telemetry/Telemetry';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 export type OnlineEvaluationProcessorDeps = {
 	registry: AgentOnlineEvaluationRegistry;
@@ -24,7 +25,8 @@ export class OnlineEvaluationProcessor {
 
 	public async evaluate(message: OnlineEvaluationMessage): Promise<void> {
 		if (Number(message.schemaVersion) !== 2) {
-			throw new Error(
+			throw new DomainError(
+				ErrorCode.VALIDATION_ERROR,
 				`Unsupported online evaluation message version: ${message.schemaVersion}`,
 			);
 		}

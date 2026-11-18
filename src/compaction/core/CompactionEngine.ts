@@ -7,6 +7,7 @@ import { BaselineTokenizer } from '@utils/BaselineTokenizer';
 import { CompactionPipeline } from './CompactionPipeline';
 import { CompactionInput, CompactionOutput, CompactionTokenStats } from './Interfaces';
 import { getActiveSpan, getMeter } from '@telemetry/Telemetry';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 export class CompactionEngine {
 	private readonly tokenizer = new BaselineTokenizer();
@@ -87,7 +88,7 @@ export class CompactionEngine {
 	}
 
 	public async compactMemory(input: CompactionInput): Promise<string> {
-		throw new Error('Not Implemented');
+		throw new DomainError(ErrorCode.NOT_IMPLEMENTED, 'Memory compaction is not implemented');
 	}
 
 	private _deserializeCompactionResult(output: CompactionOutput): string {

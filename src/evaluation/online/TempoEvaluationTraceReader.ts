@@ -5,6 +5,7 @@ import type {
 	OnlineEvaluationMessage,
 	OnlineEvaluationTraceData,
 } from './Contracts';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 type OtlpStringValue = { stringValue?: string };
 
@@ -53,7 +54,8 @@ export class TempoEvaluationTraceReader implements EvaluationTraceReader {
 		}
 
 		const failure = lastError instanceof Error ? `: ${lastError.message}` : '';
-		throw new Error(
+		throw new DomainError(
+			ErrorCode.EVALUATION_TRACE_ERROR,
 			`Tempo trace ${message.traceId} does not contain evaluation data for session ${message.sessionId}${failure}`,
 		);
 	}

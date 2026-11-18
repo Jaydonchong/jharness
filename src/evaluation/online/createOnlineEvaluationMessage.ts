@@ -1,5 +1,6 @@
 import { isSpanContextValid, type Span } from '@opentelemetry/api';
 import type { OnlineEvaluationMessage } from './Contracts';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 export type OnlineEvaluationSpanData = {
 	sessionId: string;
@@ -18,7 +19,10 @@ export function createOnlineEvaluationMessage(
 ): OnlineEvaluationMessage {
 	const spanContext = span.spanContext();
 	if (!isSpanContextValid(spanContext)) {
-		throw new Error('Cannot enqueue online evaluation without a valid trace context');
+		throw new DomainError(
+			ErrorCode.VALIDATION_ERROR,
+			'Cannot enqueue online evaluation without a valid trace context',
+		);
 	}
 
 	span.setAttribute('evaluation.session.id', data.sessionId);

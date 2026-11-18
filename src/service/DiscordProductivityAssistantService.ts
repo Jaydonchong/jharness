@@ -9,6 +9,7 @@ import { ILlmProvider } from '@providers/Interfaces';
 import { getActiveSpan } from '@telemetry/Telemetry';
 import { formatCompactionTokenStats } from './formatCompactionTokenStats';
 import logger from '@utils/Logger';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 type IDiscordProductivityAssistantServiceDeps<TModelType> = {
 	productivityAgent: ProductivityAgent;
@@ -60,7 +61,11 @@ export class DiscordProductivityAssistantService<TModelType> {
 		);
 		const response = await this.session.sendMessage(msg.content);
 		try {
-			if (!span) throw new Error('Cannot enqueue online evaluation without an active span');
+			if (!span)
+				throw new DomainError(
+					ErrorCode.VALIDATION_ERROR,
+					'Cannot enqueue online evaluation without an active span',
+				);
 			const completedAt = new Date().toISOString();
 			await this.deps.onlineEvaluationPublisher.enqueue(
 				createOnlineEvaluationMessage(span, {

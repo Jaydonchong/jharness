@@ -6,6 +6,7 @@ import { RAGDocumentRepository } from '@memory/data/RAGDocumentRepository';
 import { MEMORY_TYPE, type MemoryFragment } from '@memory/core/Interfaces';
 import { PGChunkMemoryStore } from '@memory/memoryStore/PGChunkMemoryStore/PGChunkMemoryStore';
 import { CloudflareReranker } from '@network/rerankingModel/CloudflareReranker';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 async function findMarkdownFiles(directory: string): Promise<string[]> {
 	const entries = await readdir(directory, { withFileTypes: true });
@@ -26,12 +27,18 @@ async function findMarkdownFiles(directory: string): Promise<string[]> {
 async function indexMarkdownFolder(): Promise<void> {
 	const rootPath = process.argv[2];
 	if (!rootPath || !path.isAbsolute(rootPath)) {
-		throw new Error('Usage: npm run rag:index -- <absolute-folder-path>');
+		throw new DomainError(
+			ErrorCode.VALIDATION_ERROR,
+			'Usage: npm run rag:index -- <absolute-folder-path>',
+		);
 	}
 
 	const rootInfo = await lstat(rootPath);
 	if (rootInfo.isSymbolicLink() || !rootInfo.isDirectory()) {
-		throw new Error(`Path must be an absolute directory, not a symlink: ${rootPath}`);
+		throw new DomainError(
+			ErrorCode.VALIDATION_ERROR,
+			`Path must be an absolute directory, not a symlink: ${rootPath}`,
+		);
 	}
 
 	const markdownFiles = await findMarkdownFiles(rootPath);

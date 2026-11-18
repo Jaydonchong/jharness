@@ -1,6 +1,7 @@
 import type { ILlmProvider } from '@providers/Interfaces';
 import type { EvaluationGrader } from '@evaluation/core/Contracts';
 import z from 'zod';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 const JudgeResponseSchema = z.object({
 	score: z.number().min(0).max(1),
@@ -82,10 +83,16 @@ export class LlmJudgeGrader<TModelType> implements EvaluationGrader {
 		if (
 			outcome.evidence.some(({ source, quote }) => !evidenceSources[source].includes(quote))
 		) {
-			throw new Error('LLM judge returned an evidence quote that is absent from its source');
+			throw new DomainError(
+				ErrorCode.MODEL_RESPONSE_VALIDATION_ERROR,
+				'LLM judge returned an evidence quote that is absent from its source',
+			);
 		}
 		if (outcome.determination === 'insufficient' && outcome.score !== 0) {
-			throw new Error('LLM judge must assign a score of 0 when evidence is insufficient');
+			throw new DomainError(
+				ErrorCode.MODEL_RESPONSE_VALIDATION_ERROR,
+				'LLM judge must assign a score of 0 when evidence is insufficient',
+			);
 		}
 
 		return {

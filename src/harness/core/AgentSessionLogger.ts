@@ -8,6 +8,7 @@ import type { ILlmToolCall } from '@providers/Interfaces';
 import type { IToolInvocationLogger } from '@tools/core/ToolInvoker';
 import { AgentSessionEventType } from './AgentSession';
 import type { AgentSessionEventContext } from './AgentSession';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 export class AgentSessionLogger implements IToolInvocationLogger {
 	private readonly queues = new Map<string, Promise<void>>();
@@ -19,7 +20,7 @@ export class AgentSessionLogger implements IToolInvocationLogger {
 
 	constructor(directory = process.env.SESSION_LOG_FS_PATH) {
 		if (!directory) {
-			throw new Error('SESSION_LOG_FS_PATH is required');
+			throw new DomainError(ErrorCode.SERVER_ERROR, 'SESSION_LOG_FS_PATH is required');
 		}
 		this.directory = directory;
 		this.directorySetup = mkdir(this.directory, { recursive: true })
@@ -61,7 +62,10 @@ export class AgentSessionLogger implements IToolInvocationLogger {
 			const streamError = this.streamErrors.get(sessionId);
 			if (streamError) throw streamError;
 			if (!stream) {
-				throw new Error(`Session log is not initialized: ${sessionId}`);
+				throw new DomainError(
+					ErrorCode.SERVER_ERROR,
+					`Session log is not initialized: ${sessionId}`,
+				);
 			}
 
 			const line = `${Date.now()}::${formatEvent(eventType, context)}\n`;

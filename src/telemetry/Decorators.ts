@@ -1,5 +1,6 @@
 import type { Attributes } from '@opentelemetry/api';
 import { getTracer } from './Telemetry';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 type SpanName = string | ((instance: object, args: unknown[]) => string);
 
@@ -78,5 +79,8 @@ function getClassScope(instance: object): string {
 		constructor = Object.getPrototypeOf(constructor);
 	}
 
-	throw new Error(`No TraceScope decorator found for ${instance.constructor.name}`);
+	throw new DomainError(
+		ErrorCode.SERVER_ERROR,
+		`No TraceScope decorator found for ${instance.constructor.name}`,
+	);
 }

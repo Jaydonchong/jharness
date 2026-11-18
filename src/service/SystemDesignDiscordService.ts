@@ -9,6 +9,7 @@ import { ASystemDesign } from '@agent/agentConfig/SystemDesign';
 import { getActiveSpan } from '@telemetry/Telemetry';
 import { formatCompactionTokenStats } from './formatCompactionTokenStats';
 import logger from '@utils/Logger';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 type SystemDesignDiscordServiceDeps<TModelType> = {
 	systemDesignAgent: ASystemDesign;
@@ -55,7 +56,11 @@ export class SystemDesignDiscordService<TModelType> {
 				message.channelId,
 				'**Bot**: Message received by System Design Assistant, processing...',
 			);
-			if (!span) throw new Error('Cannot enqueue online evaluation without an active span');
+			if (!span)
+				throw new DomainError(
+					ErrorCode.VALIDATION_ERROR,
+					'Cannot enqueue online evaluation without an active span',
+				);
 			const completedAt = new Date().toISOString();
 			await this.deps.onlineEvaluationPublisher.enqueue(
 				createOnlineEvaluationMessage(span, {
