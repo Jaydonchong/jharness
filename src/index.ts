@@ -29,6 +29,7 @@ import { ShellCommandTool } from '@tools/workspace/ShellCommandTool';
 import { WalkDirectoryTool } from '@tools/workspace/WalkDirectoryTool';
 import { WriteFileTool } from '@tools/workspace/WriteFileTool';
 import { WorkspaceToolSet } from '@tools/workspace/WorkspaceToolSet';
+import { createWydTaskToolSetFromEnv } from '@tools/wyd/WydTaskTools';
 import { VERCEL_AI_MODELS, VercelSDK } from '@providers/VercelSDK';
 import { CloudflareReranker } from '@network/rerankingModel/CloudflareReranker';
 import { AppDataSource } from '@database/data-source';
@@ -96,10 +97,12 @@ void (async () => {
 		new ShellCommandTool(process.cwd()),
 		new WalkDirectoryTool(),
 	];
+	const wydTaskTools = createWydTaskToolSetFromEnv();
 	const gcalSummarizerAgent = new AGcalSummarizer(
 		gcalGetCalendarEventsTool,
 		memoryTools,
 		workspaceTools,
+		wydTaskTools,
 	);
 	const generalPurposeAgent = new AGeneral(memoryTools, workspaceTools);
 

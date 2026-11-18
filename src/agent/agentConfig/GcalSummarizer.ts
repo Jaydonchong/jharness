@@ -3,6 +3,7 @@ import { GcalGetCalendarEventsTool } from '@tools/gcal/GcalTools';
 import { RecallTool } from '@tools/memory/RecallTool';
 import { RememberTool } from '@tools/memory/RememberTool';
 import { WorkspaceToolSet } from '@tools/workspace/WorkspaceToolSet';
+import { WydTaskToolSet } from '@tools/wyd/WydTaskTools';
 import { AbstractAgentConfig } from './AbstractAgentConfig';
 
 const timeZone = 'Asia/Kuala_Lumpur';
@@ -41,11 +42,19 @@ export class AGcalSummarizer extends AbstractAgentConfig {
 		gcalGetCalendarEventsTool: GcalGetCalendarEventsTool,
 		memoryTools: [RememberTool, RecallTool],
 		workspaceTools: WorkspaceToolSet,
+		wydTaskTools?: WydTaskToolSet,
 	) {
 		super({
-			systemPrompt: SYSTEM_PROMPT,
-			agentTools: [gcalGetCalendarEventsTool, ...memoryTools, ...workspaceTools],
-			outputSchema: GcalEventSummariesSchema,
+			systemPrompt: wydTaskTools
+				? `${SYSTEM_PROMPT}\nYou can also read and update Wyd tasks. Only use tasks returned from the configured Wyd folders.`
+				: SYSTEM_PROMPT,
+			agentTools: [
+				gcalGetCalendarEventsTool,
+				...memoryTools,
+				...workspaceTools,
+				...(wydTaskTools ?? []),
+			],
+			outputSchema: wydTaskTools ? undefined : GcalEventSummariesSchema,
 			onMessage: async (msg: string) => {
 				return Promise.resolve(
 					`now:  ${today()} in ${timeZone}
