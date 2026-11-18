@@ -4,6 +4,7 @@ import { ILlmToolCall } from '@providers/Interfaces';
 import { AgentToolExecutionContext } from './AgentTool';
 import { getActiveSpan, getMeter } from '@telemetry/Telemetry';
 import { TraceScope, WithSpan } from '@telemetry/Decorators';
+import { DomainError, ErrorCode } from '@utils/ErrorCode';
 
 const DEFAULT_MAX_RETRIES = 3;
 
@@ -54,10 +55,7 @@ export class ToolInvoker {
 				type: 'tool-result',
 				toolCallId: toolCall.id,
 				toolName: toolCall.name,
-				output: {
-					type: 'json',
-					value: result,
-				},
+				output: result,
 			});
 		}
 
@@ -91,8 +89,20 @@ export class ToolInvoker {
 				try {
 					const output = await tool.useTool(toolCall.input, this.context);
 					this.logToolResult(toolCall, output);
-					return output;
+					return { type: 'json', value: output };
 				} catch (error) {
+					if (error instanceof DomainError && error.code === ErrorCode.VALIDATION_ERROR) {
+						outcome = 'error';
+						const details =
+							error.cause instanceof Error ? error.cause.message : undefined;
+						const output = {
+							type: 'error-text',
+							value: details ? `${error.message}: ${details}` : error.message,
+						};
+						this.logToolResult(toolCall, output);
+						return output;
+					}
+
 					if (
 						retries >= this.maxRetries ||
 						!this.options.shouldRetry?.(error, toolCall)

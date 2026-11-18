@@ -28,7 +28,7 @@ export class CreateWydTaskTool extends AgentTool<
 	) {
 		super({
 			name: 'wyd_create_task',
-			description: `Create a task in one of these configured folders: ${allowedFolderIds.join(', ')}. Omitted status uses that folder's default. Omitted expectedAt defaults to 17:00 on the server's local day; send null for no due date. The assignee defaults to the acting identity.`,
+			description: `Create a task in one of these configured folders: ${allowedFolderIds.join(', ')}. Omitted status uses that folder's default. Omitted expectedAt defaults to 17:00 on the server's local day; send null for no due date. When provided, expectedAt must be a UTC ISO 8601 datetime ending in Z (for example, 2026-11-19T01:00:00Z). The assignee defaults to the acting identity.`,
 			inputSchema: CreateWydTaskInputSchema,
 			outputSchema: CreateWydTaskOutputSchema,
 		});
