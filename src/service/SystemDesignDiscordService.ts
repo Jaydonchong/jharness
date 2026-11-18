@@ -1,7 +1,7 @@
 import { AgentSession } from '@harness/core/AgentSession';
 import { Harness } from '@harness/core/Harness';
 import type { DiscordInboundMessage } from '@network/discord/DiscordBotClient';
-import { DiscordWebhookApi } from '@network/discord/DiscordWebhookApi';
+import { DiscordBotClient } from '@network/discord/DiscordBotClient';
 import type { OnlineEvaluationPublisher } from '@evaluation/online/Contracts';
 import { createOnlineEvaluationMessage } from '@evaluation/online/createOnlineEvaluationMessage';
 import { ILlmProvider } from '@providers/Interfaces';
@@ -15,7 +15,7 @@ type SystemDesignDiscordServiceDeps<TModelType> = {
 	harness: Harness;
 	llmProvider: ILlmProvider<TModelType>;
 	model: TModelType;
-	discordWebhookApi: DiscordWebhookApi;
+	discordBotClient: DiscordBotClient;
 	onlineEvaluationPublisher: OnlineEvaluationPublisher;
 };
 
@@ -40,7 +40,8 @@ export class SystemDesignDiscordService<TModelType> {
 		if (message.content.trim() === '/compact') {
 			span?.setAttribute('action', 'compact');
 			const compacted = await this.session.compactConversation();
-			await this.deps.discordWebhookApi.sendMessage(
+			await this.deps.discordBotClient.sendMessage(
+				message.channelId,
 				compacted
 					? formatCompactionTokenStats(compacted)
 					: 'There is no system design conversation to compact yet.',
@@ -50,7 +51,8 @@ export class SystemDesignDiscordService<TModelType> {
 		span?.setAttribute('action', 'message');
 		const response = await this.session.sendMessage(message.content);
 		try {
-			await this.deps.discordWebhookApi.sendMessage(
+			await this.deps.discordBotClient.sendMessage(
+				message.channelId,
 				'**Bot**: Message received by System Design Assistant, processing...',
 			);
 			if (!span) throw new Error('Cannot enqueue online evaluation without an active span');
@@ -74,7 +76,7 @@ export class SystemDesignDiscordService<TModelType> {
 				error,
 			});
 		}
-		await this.deps.discordWebhookApi.sendMessage(response.reply);
+		await this.deps.discordBotClient.sendMessage(message.channelId, response.reply);
 		return false;
 	}
 }

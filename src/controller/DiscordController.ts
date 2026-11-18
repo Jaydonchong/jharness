@@ -1,19 +1,22 @@
 import type { DiscordInboundMessage } from '@network/discord/DiscordBotClient';
+import { DiscordBotClient } from '@network/discord/DiscordBotClient';
 import { getActiveSpan } from '@telemetry/Telemetry';
 import { TraceScope, WithSpan } from '@telemetry/Decorators';
 import logger from '@utils/Logger';
 
 /** Return true to stop routing further messages for that channel. */
 export type DiscordMessageHandler = (message: DiscordInboundMessage) => Promise<boolean>;
+export type DiscordMessageRoute = { agentName: string; handler: DiscordMessageHandler };
 
 export type DiscordControllerOptions = {
 	allowedUserIds: ReadonlySet<string>;
-	routesByChannelName: ReadonlyMap<string, DiscordMessageHandler>;
+	routesByChannelName: ReadonlyMap<string, DiscordMessageRoute>;
+	discordBotClient: DiscordBotClient;
 };
 
 @TraceScope('controller.discord')
 export class DiscordController {
-	private readonly routesByChannelName: Map<string, DiscordMessageHandler>;
+	private readonly routesByChannelName: Map<string, DiscordMessageRoute>;
 	private readonly stoppedRoutes = new Set<string>();
 
 	public constructor(private readonly options: DiscordControllerOptions) {
@@ -48,9 +51,29 @@ export class DiscordController {
 			return;
 		}
 
-		if (await handler(message)) {
-			this.stoppedRoutes.add(channelName);
-			logger.info('Discord route stopped', { channelName });
+		try {
+			if (await handler.handler(message)) {
+				this.stoppedRoutes.add(channelName);
+				logger.info('Discord route stopped', { channelName });
+			}
+		} catch (error) {
+			logger.error('Discord agent failed while processing message', {
+				agentName: handler.agentName,
+				channelName,
+				error,
+			});
+			try {
+				await this.options.discordBotClient.sendMessage(
+					message.channelId,
+					`${handler.agentName} failed while processing your request`,
+				);
+			} catch (replyError) {
+				logger.error('Failed to send Discord agent failure reply', {
+					agentName: handler.agentName,
+					channelName,
+					error: replyError,
+				});
+			}
 		}
 	}
 }

@@ -5,7 +5,6 @@ import { MOCK_NEWS } from '@utils/MockData';
 import { GcalGetCalendarEventsTool } from '@tools/gcal/GcalTools';
 import { WebSearchTool } from '@tools/webSearch/WebSearchTool';
 import { Harness } from '@harness/core/Harness';
-import { DiscordWebhookApi } from '@network/discord/DiscordWebhookApi';
 import { AGeneral } from '@agent/agentConfig/General';
 import { ASystemDesign } from '@agent/agentConfig/SystemDesign';
 import { DiscordBotClient } from '@network/discord/DiscordBotClient';
@@ -37,7 +36,7 @@ import logger from '@utils/Logger';
 import { OTLPsdk } from '@telemetry/instrumentation';
 import { PgBossModule } from '@queue/PgBossModule';
 import { PgBossOnlineEvaluationPublisher } from '@queue/OnlineEvaluationQueue';
-import { DiscordController, type DiscordMessageHandler } from '@controller/DiscordController';
+import { DiscordController, type DiscordMessageRoute } from '@controller/DiscordController';
 import type { DiscordInboundMessage } from '@network/discord/DiscordBotClient';
 
 void (async () => {
@@ -61,7 +60,6 @@ void (async () => {
 	});
 	const openSerpSearchAdapter = new OpenSerpSearchAdapter({ client: openSerpClient });
 	const webSearchTool = new WebSearchTool({ webSearchAdapter: openSerpSearchAdapter });
-	const discordWebhookApi = new DiscordWebhookApi();
 	const discordBotClient = new DiscordBotClient();
 	/**Provider */
 	const vercelSDK = new VercelSDK();
@@ -135,7 +133,7 @@ void (async () => {
 		harness,
 		llmProvider: vercelSDK,
 		model: VERCEL_AI_MODELS.DEFAULT,
-		discordWebhookApi,
+		discordBotClient,
 		onlineEvaluationPublisher,
 	});
 	const systemDesignService = new SystemDesignDiscordService({
@@ -143,7 +141,7 @@ void (async () => {
 		harness,
 		llmProvider: vercelSDK,
 		model: VERCEL_AI_MODELS.DEFAULT,
-		discordWebhookApi,
+		discordBotClient,
 		onlineEvaluationPublisher,
 	});
 
@@ -158,14 +156,22 @@ void (async () => {
 	// }
 	// process.stdout.write("\n");
 
-	const routesByChannelName = new Map<string, DiscordMessageHandler>([
+	const routesByChannelName = new Map<string, DiscordMessageRoute>([
 		[
 			process.env.DISCORD_PRODUCTIVITY_CHANNEL_NAME ?? '',
-			(message: DiscordInboundMessage) => productivityService.handleMessage(message),
+			{
+				agentName: 'Productivity Assistant',
+				handler: (message: DiscordInboundMessage) =>
+					productivityService.handleMessage(message),
+			},
 		],
 		[
 			process.env.DISCORD_SYSTEM_DESIGN_CHANNEL_NAME ?? '',
-			(message: DiscordInboundMessage) => systemDesignService.handleMessage(message),
+			{
+				agentName: 'System Design Assistant',
+				handler: (message: DiscordInboundMessage) =>
+					systemDesignService.handleMessage(message),
+			},
 		],
 	]);
 	for (const [channelName] of routesByChannelName) {
@@ -175,6 +181,7 @@ void (async () => {
 	const discordController = new DiscordController({
 		allowedUserIds: new Set(allowedUserId ? [allowedUserId] : []),
 		routesByChannelName,
+		discordBotClient,
 	});
 
 	for await (const message of discordBotClient.listen()) {

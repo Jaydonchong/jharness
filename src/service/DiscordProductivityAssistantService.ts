@@ -2,7 +2,7 @@ import { AGcalSummarizer } from '@agent/agentConfig/GcalSummarizer';
 import { AgentSession } from '@harness/core/AgentSession';
 import { Harness } from '@harness/core/Harness';
 import type { DiscordInboundMessage } from '@network/discord/DiscordBotClient';
-import { DiscordWebhookApi } from '@network/discord/DiscordWebhookApi';
+import { DiscordBotClient } from '@network/discord/DiscordBotClient';
 import type { OnlineEvaluationPublisher } from '@evaluation/online/Contracts';
 import { createOnlineEvaluationMessage } from '@evaluation/online/createOnlineEvaluationMessage';
 import { ILlmProvider } from '@providers/Interfaces';
@@ -15,7 +15,7 @@ type IDiscordProductivityAssistantServiceDeps<TModelType> = {
 	harness: Harness;
 	llmProvider: ILlmProvider<TModelType>;
 	model: TModelType;
-	discordWebhookApi: DiscordWebhookApi;
+	discordBotClient: DiscordBotClient;
 	onlineEvaluationPublisher: OnlineEvaluationPublisher;
 };
 
@@ -41,18 +41,21 @@ export class DiscordProductivityAssistantService<TModelType> {
 			span?.setAttribute('action', 'compact');
 			const compacted = await this.session.compactConversation();
 			if (!compacted) {
-				await this.deps.discordWebhookApi.sendMessage(
+				await this.deps.discordBotClient.sendMessage(
+					msg.channelId,
 					'There is no productivity conversation to compact yet.',
 				);
 			} else {
-				await this.deps.discordWebhookApi.sendMessage(
+				await this.deps.discordBotClient.sendMessage(
+					msg.channelId,
 					formatCompactionTokenStats(compacted),
 				);
 			}
 			return false;
 		}
 
-		await this.deps.discordWebhookApi.sendMessage(
+		await this.deps.discordBotClient.sendMessage(
+			msg.channelId,
 			'**Bot**: Message received by productivity agent, processing...',
 		);
 		const response = await this.session.sendMessage(msg.content);
@@ -78,7 +81,7 @@ export class DiscordProductivityAssistantService<TModelType> {
 				error,
 			});
 		}
-		await this.deps.discordWebhookApi.sendMessage(response.reply);
+		await this.deps.discordBotClient.sendMessage(msg.channelId, response.reply);
 
 		span?.setAttribute('action', 'message');
 		return false;

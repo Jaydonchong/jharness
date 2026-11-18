@@ -84,6 +84,23 @@ export class DiscordBotClient {
 		if (this.subscribers.size === 0) this.loginPromise = null;
 	}
 
+	/** Sends a reply through the bot account to the channel that received a message. */
+	async sendMessage(channelId: string, content: string): Promise<void> {
+		try {
+			await this.connect();
+			const channel = await this.client.channels.fetch(channelId);
+			if (!channel?.isTextBased() || !('send' in channel)) {
+				throw new DomainError(
+					ErrorCode.NETWORK_ERROR,
+					`Discord channel ${channelId} cannot receive messages`,
+				);
+			}
+			await channel.send({ content, allowedMentions: { parse: [] } });
+		} catch (error) {
+			throw asDomainError(error, ErrorCode.NETWORK_ERROR, 'Discord bot reply failed');
+		}
+	}
+
 	/**
 	 * Yields inbound messages until the consumer stops iterating.
 	 * Login happens on first `next()`, so a bad token surfaces as a thrown
