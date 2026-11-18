@@ -4,10 +4,10 @@
 - [x] Harness class
 - [x] Tool Calling
     - [x] Function Tool
-    - [] Dynamic Tool
-    - [] Provider Defined Tool
-    - [] Skill Upload
-    - [] Deferred Tool calling
+    - [ ] Dynamic Tool
+    - [ ] Provider Defined Tool
+    - [ ] Skill Upload
+    - [ ] Deferred Tool calling
 - [x] State Preservatioon
     - [x] Session ID tracking
     - [x] Session Logs
@@ -15,18 +15,18 @@
     - [x] Environment variable - Solves the problem of models assuming current date as 2025 based on the data it is trained on
     - [x] Compaction
         - [x] Offload huge tool results
-        - [] Verify + nudge
-        - [] Eval for ratio
+        - [ ] Verify + nudge
+        - [x] Eval for ratio
 - [] Outputs
-    - [] Structured Outputs
-    - [] Error Handling : https://ai-sdk.dev/docs/reference/ai-sdk-errors
-    - [] Output reasoning
+    - [ ] Structured Outputs
+    - [ ] Error Handling : https://ai-sdk.dev/docs/reference/ai-sdk-errors
+    - [ ] Output reasoning
     - [x] Stream Text
-- [] Context
-    - [] Memory
-    - [] RAG
-- [] Observability
-    - [] Evals
+- [x] Context
+    - [x] Memory
+    - [x] RAG
+- [x] Observability
+    - [x] Evals
 - [] Security
     - [] Permission Gates
 - [] Additional
