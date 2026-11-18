@@ -10,6 +10,7 @@
     "paths": {
       "@agent/*": ["./src/agent/*"],
       "@compaction/*": ["./src/compaction/*"],
+      "@controller/*": ["./src/controller/*"],
       "@database/*": ["./src/database/*"],
       "@evaluation/*": ["./src/evaluation/*"],
       "@harness/*": ["./src/harness/*"],

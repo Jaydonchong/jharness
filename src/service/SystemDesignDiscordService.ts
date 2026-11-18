@@ -1,14 +1,12 @@
 import { AgentSession } from '@harness/core/AgentSession';
 import { Harness } from '@harness/core/Harness';
-import { DiscordBotClient, type DiscordInboundMessage } from '@network/discord/DiscordBotClient';
+import type { DiscordInboundMessage } from '@network/discord/DiscordBotClient';
 import { DiscordWebhookApi } from '@network/discord/DiscordWebhookApi';
 import type { OnlineEvaluationPublisher } from '@evaluation/online/Contracts';
 import { createOnlineEvaluationMessage } from '@evaluation/online/createOnlineEvaluationMessage';
 import { ILlmProvider } from '@providers/Interfaces';
 import { ASystemDesign } from '@agent/agentConfig/SystemDesign';
 import { getActiveSpan } from '@telemetry/Telemetry';
-import { TraceScope, WithSpan } from '@telemetry/Decorators';
-import { AbstractService } from './AbstractService';
 import { formatCompactionTokenStats } from './formatCompactionTokenStats';
 import logger from '@utils/Logger';
 
@@ -17,17 +15,14 @@ type SystemDesignDiscordServiceDeps<TModelType> = {
 	harness: Harness;
 	llmProvider: ILlmProvider<TModelType>;
 	model: TModelType;
-	discordBotClient: DiscordBotClient;
 	discordWebhookApi: DiscordWebhookApi;
 	onlineEvaluationPublisher: OnlineEvaluationPublisher;
 };
 
-@TraceScope('service.discord-system-design')
-export class SystemDesignDiscordService<TModelType> extends AbstractService {
+export class SystemDesignDiscordService<TModelType> {
 	private readonly session: AgentSession<TModelType>;
 
 	constructor(private readonly deps: SystemDesignDiscordServiceDeps<TModelType>) {
-		super('discord-system-design');
 		this.session = this.deps.harness.newSession({
 			llmProvider: this.deps.llmProvider,
 			agent: this.deps.systemDesignAgent,
@@ -35,17 +30,6 @@ export class SystemDesignDiscordService<TModelType> extends AbstractService {
 		});
 	}
 
-	public async run(): Promise<void> {
-		for await (const message of this.deps.discordBotClient.listen(
-			process.env.DISCORD_SYSTEM_DESIGN_CHANNEL_ID,
-		)) {
-			if (await this.handleMessage(message)) {
-				break;
-			}
-		}
-	}
-
-	@WithSpan('request.incoming')
 	public async handleMessage(message: DiscordInboundMessage): Promise<boolean> {
 		const span = getActiveSpan();
 		if (message.content.trim() === 'stop') {
@@ -67,7 +51,7 @@ export class SystemDesignDiscordService<TModelType> extends AbstractService {
 		const response = await this.session.sendMessage(message.content);
 		try {
 			await this.deps.discordWebhookApi.sendMessage(
-				'**Bot**: Message received, processing...',
+				'**Bot**: Message received by System Design Assistant, processing...',
 			);
 			if (!span) throw new Error('Cannot enqueue online evaluation without an active span');
 			const completedAt = new Date().toISOString();

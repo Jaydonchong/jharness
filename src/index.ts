@@ -37,6 +37,8 @@ import logger from '@utils/Logger';
 import { OTLPsdk } from '@telemetry/instrumentation';
 import { PgBossModule } from '@queue/PgBossModule';
 import { PgBossOnlineEvaluationPublisher } from '@queue/OnlineEvaluationQueue';
+import { DiscordController, type DiscordMessageHandler } from '@controller/DiscordController';
+import type { DiscordInboundMessage } from '@network/discord/DiscordBotClient';
 
 void (async () => {
 	const dataSource = await AppDataSource.initialize();
@@ -133,7 +135,6 @@ void (async () => {
 		harness,
 		llmProvider: vercelSDK,
 		model: VERCEL_AI_MODELS.DEFAULT,
-		discordBotClient,
 		discordWebhookApi,
 		onlineEvaluationPublisher,
 	});
@@ -142,7 +143,6 @@ void (async () => {
 		harness,
 		llmProvider: vercelSDK,
 		model: VERCEL_AI_MODELS.DEFAULT,
-		discordBotClient,
 		discordWebhookApi,
 		onlineEvaluationPublisher,
 	});
@@ -158,7 +158,28 @@ void (async () => {
 	// }
 	// process.stdout.write("\n");
 
-	await Promise.all([productivityService.run(), systemDesignService.run()]);
+	const routesByChannelName = new Map<string, DiscordMessageHandler>([
+		[
+			process.env.DISCORD_PRODUCTIVITY_CHANNEL_NAME ?? '',
+			(message: DiscordInboundMessage) => productivityService.handleMessage(message),
+		],
+		[
+			process.env.DISCORD_SYSTEM_DESIGN_CHANNEL_NAME ?? '',
+			(message: DiscordInboundMessage) => systemDesignService.handleMessage(message),
+		],
+	]);
+	for (const [channelName] of routesByChannelName) {
+		if (!channelName.trim()) routesByChannelName.delete(channelName);
+	}
+	const allowedUserId = process.env.DISCORD_ACCOUNT_ID?.trim();
+	const discordController = new DiscordController({
+		allowedUserIds: new Set(allowedUserId ? [allowedUserId] : []),
+		routesByChannelName,
+	});
+
+	for await (const message of discordBotClient.listen()) {
+		await discordController.handleMessage(message);
+	}
 
 	await pgBossModule.stop();
 	await harness.close();
