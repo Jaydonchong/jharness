@@ -1,435 +1,624 @@
 {
-	"__inputs": [],
-	"__requires": [
-		{ "type": "grafana", "id": "grafana", "name": "Grafana", "version": "13.3.0" },
-		{ "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" },
-		{ "type": "datasource", "id": "loki", "name": "Loki", "version": "1.0.0" },
-		{ "type": "datasource", "id": "tempo", "name": "Tempo", "version": "1.0.0" }
-	],
-	"annotations": {
-		"list": [
-			{
-				"builtIn": 1,
-				"datasource": { "type": "grafana", "uid": "-- Grafana --" },
-				"enable": true,
-				"hide": true,
-				"iconColor": "rgba(0, 211, 255, 1)",
-				"name": "Annotations & Alerts",
-				"type": "dashboard"
-			}
-		]
+	"apiVersion": "dashboard.grafana.app/v1",
+	"kind": "Dashboard",
+	"metadata": {
+		"name": "agenticdir-runtime-observability"
 	},
-	"editable": true,
-	"fiscalYearStartMonth": 0,
-	"graphTooltip": 1,
-	"id": null,
-	"links": [],
-	"liveNow": false,
-	"panels": [
-		{
-			"datasource": { "type": "prometheus", "uid": "prometheus" },
-			"fieldConfig": {
-				"defaults": {
-					"color": { "mode": "palette-classic" },
-					"custom": {
-						"drawStyle": "line",
-						"lineInterpolation": "smooth",
-						"lineWidth": 2,
-						"fillOpacity": 12,
-						"showPoints": "never"
+	"spec": {
+		"annotations": {
+			"list": [
+				{
+					"builtIn": 1,
+					"datasource": {
+						"type": "grafana",
+						"uid": "-- Grafana --"
 					},
-					"unit": "short"
-				},
-				"overrides": []
-			},
-			"gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-			"id": 1,
-			"options": {
-				"legend": { "calcs": [], "displayMode": "table", "placement": "bottom" },
-				"tooltip": { "mode": "multi", "sort": "desc" }
-			},
-			"targets": [
-				{
-					"editorMode": "code",
-					"expr": "sum(rate(agent_session_turns_count_total{service_name=~\"$service\"}[$__rate_interval]))",
-					"legendFormat": "turns / s",
-					"refId": "A"
-				},
-				{
-					"editorMode": "code",
-					"expr": "sum(increase(tool_call_count_total{service_name=~\"$service\"}[10m]))",
-					"legendFormat": "tool calls / 10m",
-					"refId": "B"
+					"enable": true,
+					"hide": true,
+					"iconColor": "rgba(0, 211, 255, 1)",
+					"name": "Annotations & Alerts",
+					"type": "dashboard"
 				}
-			],
-			"title": "Agent and tool activity",
-			"type": "timeseries"
+			]
 		},
-		{
-			"datasource": { "type": "prometheus", "uid": "prometheus" },
-			"fieldConfig": {
-				"defaults": {
-					"color": { "mode": "palette-classic" },
-					"custom": {
-						"drawStyle": "line",
-						"lineWidth": 2,
-						"fillOpacity": 10,
-						"showPoints": "never"
-					},
-					"unit": "short"
-				},
-				"overrides": []
-			},
-			"gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-			"id": 2,
-			"options": {
-				"legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
-				"tooltip": { "mode": "multi", "sort": "desc" }
-			},
-			"targets": [
-				{
-					"editorMode": "code",
-					"expr": "sum(rate(llm_tokens_input_total{service_name=~\"$service\"}[$__rate_interval]))",
-					"legendFormat": "input tokens / s",
-					"refId": "A"
-				},
-				{
-					"editorMode": "code",
-					"expr": "sum(rate(llm_tokens_output_total{service_name=~\"$service\"}[$__rate_interval]))",
-					"legendFormat": "output tokens / s",
-					"refId": "B"
-				}
-			],
-			"title": "LLM token throughput",
-			"type": "timeseries"
-		},
-		{
-			"datasource": { "type": "prometheus", "uid": "prometheus" },
-			"fieldConfig": {
-				"defaults": {
-					"color": { "mode": "palette-classic" },
-					"custom": {
-						"drawStyle": "line",
-						"lineWidth": 2,
-						"fillOpacity": 10,
-						"showPoints": "never"
-					},
-					"unit": "s"
-				},
-				"overrides": []
-			},
-			"gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-			"id": 3,
-			"options": {
-				"legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
-				"tooltip": { "mode": "multi", "sort": "desc" }
-			},
-			"targets": [
-				{
-					"editorMode": "code",
-					"expr": "histogram_quantile(0.95, sum by (le) (rate(agent_session_turn_duration_seconds_bucket{service_name=~\"$service\"}[$__rate_interval])))",
-					"legendFormat": "agent turn p95",
-					"refId": "A"
-				},
-				{
-					"editorMode": "code",
-					"expr": "histogram_quantile(0.95, sum by (le) (rate(tool_call_duration_seconds_bucket{service_name=~\"$service\"}[$__rate_interval])))",
-					"legendFormat": "tool call p95",
-					"refId": "B"
-				}
-			],
-			"title": "Agent and tool latency (p95)",
-			"type": "timeseries"
-		},
-		{
-			"datasource": { "type": "prometheus", "uid": "prometheus" },
-			"fieldConfig": {
-				"defaults": {
-					"color": { "mode": "palette-classic" },
-					"custom": {
-						"drawStyle": "line",
-						"lineWidth": 2,
-						"fillOpacity": 12,
-						"showPoints": "never"
-					},
-					"unit": "short"
-				},
-				"overrides": []
-			},
-			"gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-			"id": 4,
-			"options": {
-				"legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
-				"tooltip": { "mode": "multi", "sort": "desc" }
-			},
-			"targets": [
-				{
-					"editorMode": "code",
-					"expr": "sum(rate(compaction_pipeline_count_total{service_name=~\"$service\",compaction_outcome=\"success\"}[$__rate_interval]))",
-					"legendFormat": "success / s",
-					"refId": "A"
-				},
-				{
-					"editorMode": "code",
-					"expr": "sum(rate(compaction_pipeline_count_total{service_name=~\"$service\",compaction_outcome=\"error\"}[$__rate_interval]))",
-					"legendFormat": "error / s",
-					"refId": "B"
-				}
-			],
-			"title": "Compaction throughput and errors",
-			"type": "timeseries"
-		},
-		{
-			"datasource": { "type": "prometheus", "uid": "prometheus" },
-			"fieldConfig": {
-				"defaults": {
-					"color": { "mode": "palette-classic" },
-					"custom": {
-						"drawStyle": "line",
-						"lineWidth": 2,
-						"fillOpacity": 12,
-						"showPoints": "never"
-					},
-					"unit": "short"
-				},
-				"overrides": []
-			},
-			"gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
-			"id": 5,
-			"options": {
-				"legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
-				"tooltip": { "mode": "multi", "sort": "desc" }
-			},
-			"targets": [
-				{
-					"editorMode": "code",
-					"expr": "sum(rate(compaction_tokens_before_sum{service_name=~\"$service\"}[$__rate_interval])) / sum(rate(compaction_tokens_before_count{service_name=~\"$service\"}[$__rate_interval]))",
-					"legendFormat": "before",
-					"refId": "A"
-				},
-				{
-					"editorMode": "code",
-					"expr": "sum(rate(compaction_tokens_after_sum{service_name=~\"$service\"}[$__rate_interval])) / sum(rate(compaction_tokens_after_count{service_name=~\"$service\"}[$__rate_interval]))",
-					"legendFormat": "after",
-					"refId": "B"
-				}
-			],
-			"title": "Average context tokens before and after compaction",
-			"type": "timeseries"
-		},
-		{
-			"datasource": { "type": "prometheus", "uid": "prometheus" },
-			"fieldConfig": {
-				"defaults": {
-					"color": { "mode": "palette-classic" },
-					"custom": {
-						"drawStyle": "line",
-						"lineWidth": 2,
-						"fillOpacity": 10,
-						"showPoints": "never"
-					},
-					"unit": "s"
-				},
-				"overrides": []
-			},
-			"gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
-			"id": 6,
-			"options": {
-				"legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
-				"tooltip": { "mode": "multi", "sort": "desc" }
-			},
-			"targets": [
-				{
-					"editorMode": "code",
-					"expr": "histogram_quantile(0.95, sum by (le) (rate(compaction_pipeline_duration_seconds_bucket{service_name=~\"$service\"}[$__rate_interval])))",
-					"legendFormat": "pipeline p95",
-					"refId": "A"
-				},
-				{
-					"editorMode": "code",
-					"expr": "histogram_quantile(0.95, sum by (le) (rate(compaction_pipeline_node_duration_seconds_bucket{service_name=~\"$service\"}[$__rate_interval])))",
-					"legendFormat": "node p95",
-					"refId": "B"
-				}
-			],
-			"title": "Compaction latency (p95)",
-			"type": "timeseries"
-		},
-		{
-			"datasource": { "type": "prometheus", "uid": "prometheus" },
-			"fieldConfig": {
-				"defaults": {
-					"color": { "mode": "palette-classic" },
-					"custom": {
-						"drawStyle": "line",
-						"lineWidth": 2,
-						"fillOpacity": 10,
-						"showPoints": "never"
-					},
-					"unit": "short"
-				},
-				"overrides": []
-			},
-			"gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
-			"id": 7,
-			"options": {
-				"legend": { "calcs": [], "displayMode": "table", "placement": "bottom" },
-				"tooltip": { "mode": "multi", "sort": "desc" }
-			},
-			"targets": [
-				{
-					"editorMode": "code",
-					"expr": "sum by (evaluation_mode, evaluation_name, test_case_result_status) (rate(evaluation_trials_count_total{service_name=~\"$service\"}[$__rate_interval]))",
-					"legendFormat": "{{evaluation_mode}} / {{evaluation_name}} / {{test_case_result_status}}",
-					"refId": "A"
-				}
-			],
-			"title": "Evaluation trials by result",
-			"type": "timeseries"
-		},
-		{
-			"datasource": { "type": "loki", "uid": "loki" },
-			"gridPos": { "h": 10, "w": 12, "x": 12, "y": 24 },
-			"id": 8,
-			"options": {
-				"dedupStrategy": "signature",
-				"enableLogDetails": true,
-				"prettifyLogMessage": false,
-				"showCommonLabels": false,
-				"showLabels": false,
-				"showTime": true,
-				"sortOrder": "Descending",
-				"wrapLogMessage": true
-			},
-			"targets": [
-				{
-					"datasource": { "type": "loki", "uid": "loki" },
-					"direction": "backward",
-					"editorMode": "code",
-					"expr": "{service_name=~\"$service\"}",
-					"queryType": "range",
-					"refId": "A"
-				}
-			],
-			"title": "Application logs",
-			"type": "logs"
-		},
-		{
-			"datasource": { "type": "prometheus", "uid": "prometheus" },
-			"description": "Errors divided by all tool calls in each rate interval.",
-			"fieldConfig": {
-				"defaults": {
-					"color": { "mode": "palette-classic" },
-					"custom": {
-						"drawStyle": "line",
-						"lineWidth": 2,
-						"fillOpacity": 12,
-						"showPoints": "never"
-					},
-					"unit": "percentunit",
-					"min": 0,
-					"max": 1
-				},
-				"overrides": []
-			},
-			"gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
-			"id": 10,
-			"options": {
-				"legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
-				"tooltip": { "mode": "single" }
-			},
-			"targets": [
-				{
-					"editorMode": "code",
-					"expr": "(sum(rate(tool_call_count_total{service_name=~\"$service\",tool_outcome=\"error\"}[$__rate_interval])) or vector(0)) / clamp_min(sum(rate(tool_call_count_total{service_name=~\"$service\"}[$__rate_interval])), 1e-10)",
-					"legendFormat": "error rate",
-					"refId": "A"
-				}
-			],
-			"title": "Tool call error rate",
-			"type": "timeseries"
-		},
-		{
-			"datasource": { "type": "prometheus", "uid": "prometheus" },
-			"description": "Lifetime turn attempts divided by sessions created since process start. Turns are sendMessage and streamMessage attempts.",
-			"fieldConfig": {
-				"defaults": {
-					"color": { "mode": "thresholds" },
-					"mappings": [],
-					"thresholds": {
-						"mode": "absolute",
-						"steps": [{ "color": "green", "value": null }]
-					},
-					"unit": "short"
-				},
-				"overrides": []
-			},
-			"gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
-			"id": 11,
-			"options": {
-				"colorMode": "value",
-				"graphMode": "area",
-				"justifyMode": "auto",
-				"orientation": "auto",
-				"reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-				"textMode": "auto"
-			},
-			"targets": [
-				{
-					"editorMode": "code",
-					"expr": "(sum(agent_session_turns_count_total{service_name=~\"$service\"}) or vector(0)) / clamp_min(sum(agent_session_sessions_count_total{service_name=~\"$service\"}), 1)",
-					"legendFormat": "turns per session",
-					"refId": "A"
-				}
-			],
-			"title": "Average turns per session (since process start)",
-			"type": "stat"
-		},
-		{
-			"datasource": { "type": "tempo", "uid": "tempo" },
-			"gridPos": { "h": 10, "w": 24, "x": 0, "y": 40 },
-			"id": 9,
-			"targets": [
-				{
-					"datasource": { "type": "tempo", "uid": "tempo" },
-					"query": "{ resource.service.name = \"$service\" }",
-					"queryType": "traceql",
-					"refId": "A"
-				}
-			],
-			"title": "Traces",
-			"type": "traces"
-		}
-	],
-	"refresh": "30s",
-	"schemaVersion": 41,
-	"tags": ["agenticDir", "OpenTelemetry"],
-	"templating": {
-		"list": [
+		"editable": true,
+		"fiscalYearStartMonth": 0,
+		"graphTooltip": 1,
+		"id": null,
+		"links": [],
+		"liveNow": false,
+		"panels": [
 			{
-				"current": { "selected": true, "text": "All", "value": "$__all" },
-				"datasource": { "type": "prometheus", "uid": "prometheus" },
-				"definition": "label_values(llm_tokens_input_total, service_name)",
-				"includeAll": true,
-				"label": "Service",
-				"name": "service",
-				"options": [],
-				"query": {
-					"qryType": 1,
-					"query": "label_values(llm_tokens_input_total, service_name)",
-					"refId": "PrometheusVariableQueryEditor-VariableQuery"
+				"datasource": {
+					"type": "prometheus",
+					"uid": "prometheus"
 				},
-				"refresh": 2,
-				"regex": "",
-				"type": "query"
+				"fieldConfig": {
+					"defaults": {
+						"color": {
+							"mode": "palette-classic"
+						},
+						"custom": {
+							"drawStyle": "line",
+							"lineInterpolation": "smooth",
+							"lineWidth": 2,
+							"fillOpacity": 12,
+							"showPoints": "never"
+						},
+						"unit": "short"
+					},
+					"overrides": []
+				},
+				"gridPos": {
+					"h": 8,
+					"w": 12,
+					"x": 0,
+					"y": 0
+				},
+				"id": 1,
+				"options": {
+					"legend": {
+						"calcs": [],
+						"displayMode": "table",
+						"placement": "bottom"
+					},
+					"tooltip": {
+						"mode": "multi",
+						"sort": "desc"
+					}
+				},
+				"targets": [
+					{
+						"editorMode": "code",
+						"expr": "sum(rate(agent_session_turns_count_total{service_name=~\"$service\"}[$__rate_interval]))",
+						"legendFormat": "turns / s",
+						"refId": "A"
+					},
+					{
+						"editorMode": "code",
+						"expr": "sum(increase(tool_call_count_total{service_name=~\"$service\"}[10m]))",
+						"legendFormat": "tool calls / 10m",
+						"refId": "B"
+					}
+				],
+				"title": "Agent and tool activity",
+				"type": "timeseries"
+			},
+			{
+				"datasource": {
+					"type": "prometheus",
+					"uid": "prometheus"
+				},
+				"fieldConfig": {
+					"defaults": {
+						"color": {
+							"mode": "palette-classic"
+						},
+						"custom": {
+							"drawStyle": "line",
+							"lineWidth": 2,
+							"fillOpacity": 10,
+							"showPoints": "never"
+						},
+						"unit": "short"
+					},
+					"overrides": []
+				},
+				"gridPos": {
+					"h": 8,
+					"w": 12,
+					"x": 12,
+					"y": 0
+				},
+				"id": 2,
+				"options": {
+					"legend": {
+						"calcs": [],
+						"displayMode": "list",
+						"placement": "bottom"
+					},
+					"tooltip": {
+						"mode": "multi",
+						"sort": "desc"
+					}
+				},
+				"targets": [
+					{
+						"editorMode": "code",
+						"expr": "sum(rate(llm_tokens_input_total{service_name=~\"$service\"}[$__rate_interval]))",
+						"legendFormat": "input tokens / s",
+						"refId": "A"
+					},
+					{
+						"editorMode": "code",
+						"expr": "sum(rate(llm_tokens_output_total{service_name=~\"$service\"}[$__rate_interval]))",
+						"legendFormat": "output tokens / s",
+						"refId": "B"
+					}
+				],
+				"title": "LLM token throughput",
+				"type": "timeseries"
+			},
+			{
+				"datasource": {
+					"type": "prometheus",
+					"uid": "prometheus"
+				},
+				"fieldConfig": {
+					"defaults": {
+						"color": {
+							"mode": "palette-classic"
+						},
+						"custom": {
+							"drawStyle": "line",
+							"lineWidth": 2,
+							"fillOpacity": 10,
+							"showPoints": "never"
+						},
+						"unit": "s"
+					},
+					"overrides": []
+				},
+				"gridPos": {
+					"h": 8,
+					"w": 12,
+					"x": 0,
+					"y": 8
+				},
+				"id": 3,
+				"options": {
+					"legend": {
+						"calcs": [],
+						"displayMode": "list",
+						"placement": "bottom"
+					},
+					"tooltip": {
+						"mode": "multi",
+						"sort": "desc"
+					}
+				},
+				"targets": [
+					{
+						"editorMode": "code",
+						"expr": "histogram_quantile(0.95, sum by (le) (rate(agent_session_turn_duration_seconds_bucket{service_name=~\"$service\"}[$__rate_interval])))",
+						"legendFormat": "agent turn p95",
+						"refId": "A"
+					},
+					{
+						"editorMode": "code",
+						"expr": "histogram_quantile(0.95, sum by (le) (rate(tool_call_duration_seconds_bucket{service_name=~\"$service\"}[$__rate_interval])))",
+						"legendFormat": "tool call p95",
+						"refId": "B"
+					}
+				],
+				"title": "Agent and tool latency (p95)",
+				"type": "timeseries"
+			},
+			{
+				"datasource": {
+					"type": "prometheus",
+					"uid": "prometheus"
+				},
+				"fieldConfig": {
+					"defaults": {
+						"color": {
+							"mode": "palette-classic"
+						},
+						"custom": {
+							"drawStyle": "line",
+							"lineWidth": 2,
+							"fillOpacity": 12,
+							"showPoints": "never"
+						},
+						"unit": "short"
+					},
+					"overrides": []
+				},
+				"gridPos": {
+					"h": 8,
+					"w": 12,
+					"x": 12,
+					"y": 8
+				},
+				"id": 4,
+				"options": {
+					"legend": {
+						"calcs": [],
+						"displayMode": "list",
+						"placement": "bottom"
+					},
+					"tooltip": {
+						"mode": "multi",
+						"sort": "desc"
+					}
+				},
+				"targets": [
+					{
+						"editorMode": "code",
+						"expr": "sum(rate(compaction_pipeline_count_total{service_name=~\"$service\",compaction_outcome=\"success\"}[$__rate_interval]))",
+						"legendFormat": "success / s",
+						"refId": "A"
+					},
+					{
+						"editorMode": "code",
+						"expr": "sum(rate(compaction_pipeline_count_total{service_name=~\"$service\",compaction_outcome=\"error\"}[$__rate_interval]))",
+						"legendFormat": "error / s",
+						"refId": "B"
+					}
+				],
+				"title": "Compaction throughput and errors",
+				"type": "timeseries"
+			},
+			{
+				"datasource": {
+					"type": "prometheus",
+					"uid": "prometheus"
+				},
+				"fieldConfig": {
+					"defaults": {
+						"color": {
+							"mode": "palette-classic"
+						},
+						"custom": {
+							"drawStyle": "line",
+							"lineWidth": 2,
+							"fillOpacity": 12,
+							"showPoints": "never"
+						},
+						"unit": "short"
+					},
+					"overrides": []
+				},
+				"gridPos": {
+					"h": 8,
+					"w": 12,
+					"x": 0,
+					"y": 16
+				},
+				"id": 5,
+				"options": {
+					"legend": {
+						"calcs": [],
+						"displayMode": "list",
+						"placement": "bottom"
+					},
+					"tooltip": {
+						"mode": "multi",
+						"sort": "desc"
+					}
+				},
+				"targets": [
+					{
+						"editorMode": "code",
+						"expr": "sum(rate(compaction_tokens_before_sum{service_name=~\"$service\"}[$__rate_interval])) / sum(rate(compaction_tokens_before_count{service_name=~\"$service\"}[$__rate_interval]))",
+						"legendFormat": "before",
+						"refId": "A"
+					},
+					{
+						"editorMode": "code",
+						"expr": "sum(rate(compaction_tokens_after_sum{service_name=~\"$service\"}[$__rate_interval])) / sum(rate(compaction_tokens_after_count{service_name=~\"$service\"}[$__rate_interval]))",
+						"legendFormat": "after",
+						"refId": "B"
+					}
+				],
+				"title": "Average context tokens before and after compaction",
+				"type": "timeseries"
+			},
+			{
+				"datasource": {
+					"type": "prometheus",
+					"uid": "prometheus"
+				},
+				"fieldConfig": {
+					"defaults": {
+						"color": {
+							"mode": "palette-classic"
+						},
+						"custom": {
+							"drawStyle": "line",
+							"lineWidth": 2,
+							"fillOpacity": 10,
+							"showPoints": "never"
+						},
+						"unit": "s"
+					},
+					"overrides": []
+				},
+				"gridPos": {
+					"h": 8,
+					"w": 12,
+					"x": 12,
+					"y": 16
+				},
+				"id": 6,
+				"options": {
+					"legend": {
+						"calcs": [],
+						"displayMode": "list",
+						"placement": "bottom"
+					},
+					"tooltip": {
+						"mode": "multi",
+						"sort": "desc"
+					}
+				},
+				"targets": [
+					{
+						"editorMode": "code",
+						"expr": "histogram_quantile(0.95, sum by (le) (rate(compaction_pipeline_duration_seconds_bucket{service_name=~\"$service\"}[$__rate_interval])))",
+						"legendFormat": "pipeline p95",
+						"refId": "A"
+					},
+					{
+						"editorMode": "code",
+						"expr": "histogram_quantile(0.95, sum by (le) (rate(compaction_pipeline_node_duration_seconds_bucket{service_name=~\"$service\"}[$__rate_interval])))",
+						"legendFormat": "node p95",
+						"refId": "B"
+					}
+				],
+				"title": "Compaction latency (p95)",
+				"type": "timeseries"
+			},
+			{
+				"datasource": {
+					"type": "prometheus",
+					"uid": "prometheus"
+				},
+				"fieldConfig": {
+					"defaults": {
+						"color": {
+							"mode": "palette-classic"
+						},
+						"custom": {
+							"drawStyle": "line",
+							"lineWidth": 2,
+							"fillOpacity": 10,
+							"showPoints": "never"
+						},
+						"unit": "short"
+					},
+					"overrides": []
+				},
+				"gridPos": {
+					"h": 8,
+					"w": 12,
+					"x": 0,
+					"y": 24
+				},
+				"id": 7,
+				"options": {
+					"legend": {
+						"calcs": [],
+						"displayMode": "table",
+						"placement": "bottom"
+					},
+					"tooltip": {
+						"mode": "multi",
+						"sort": "desc"
+					}
+				},
+				"targets": [
+					{
+						"editorMode": "code",
+						"expr": "sum by (evaluation_mode, evaluation_name, test_case_result_status) (rate(evaluation_trials_count_total{service_name=~\"$service\"}[$__rate_interval]))",
+						"legendFormat": "{{evaluation_mode}} / {{evaluation_name}} / {{test_case_result_status}}",
+						"refId": "A"
+					}
+				],
+				"title": "Evaluation trials by result",
+				"type": "timeseries"
+			},
+			{
+				"datasource": {
+					"type": "loki",
+					"uid": "loki"
+				},
+				"gridPos": {
+					"h": 10,
+					"w": 12,
+					"x": 12,
+					"y": 24
+				},
+				"id": 8,
+				"options": {
+					"dedupStrategy": "signature",
+					"enableLogDetails": true,
+					"prettifyLogMessage": false,
+					"showCommonLabels": false,
+					"showLabels": false,
+					"showTime": true,
+					"sortOrder": "Descending",
+					"wrapLogMessage": true
+				},
+				"targets": [
+					{
+						"datasource": {
+							"type": "loki",
+							"uid": "loki"
+						},
+						"direction": "backward",
+						"editorMode": "code",
+						"expr": "{service_name=~\"$service\"}",
+						"queryType": "range",
+						"refId": "A"
+					}
+				],
+				"title": "Application logs",
+				"type": "logs"
+			},
+			{
+				"datasource": {
+					"type": "prometheus",
+					"uid": "prometheus"
+				},
+				"description": "Errors divided by all tool calls in each rate interval.",
+				"fieldConfig": {
+					"defaults": {
+						"color": {
+							"mode": "palette-classic"
+						},
+						"custom": {
+							"drawStyle": "line",
+							"lineWidth": 2,
+							"fillOpacity": 12,
+							"showPoints": "never"
+						},
+						"unit": "percentunit",
+						"min": 0,
+						"max": 1
+					},
+					"overrides": []
+				},
+				"gridPos": {
+					"h": 8,
+					"w": 12,
+					"x": 0,
+					"y": 32
+				},
+				"id": 10,
+				"options": {
+					"legend": {
+						"calcs": [],
+						"displayMode": "list",
+						"placement": "bottom"
+					},
+					"tooltip": {
+						"mode": "single"
+					}
+				},
+				"targets": [
+					{
+						"editorMode": "code",
+						"expr": "(sum(rate(tool_call_count_total{service_name=~\"$service\",tool_outcome=\"error\"}[$__rate_interval])) or vector(0)) / clamp_min(sum(rate(tool_call_count_total{service_name=~\"$service\"}[$__rate_interval])), 1e-10)",
+						"legendFormat": "error rate",
+						"refId": "A"
+					}
+				],
+				"title": "Tool call error rate",
+				"type": "timeseries"
+			},
+			{
+				"datasource": {
+					"type": "prometheus",
+					"uid": "prometheus"
+				},
+				"description": "Lifetime turn attempts divided by sessions created since process start. Turns are sendMessage and streamMessage attempts.",
+				"fieldConfig": {
+					"defaults": {
+						"color": {
+							"mode": "thresholds"
+						},
+						"mappings": [],
+						"thresholds": {
+							"mode": "absolute",
+							"steps": [
+								{
+									"color": "green",
+									"value": null
+								}
+							]
+						},
+						"unit": "short"
+					},
+					"overrides": []
+				},
+				"gridPos": {
+					"h": 8,
+					"w": 12,
+					"x": 12,
+					"y": 32
+				},
+				"id": 11,
+				"options": {
+					"colorMode": "value",
+					"graphMode": "area",
+					"justifyMode": "auto",
+					"orientation": "auto",
+					"reduceOptions": {
+						"calcs": ["lastNotNull"],
+						"fields": "",
+						"values": false
+					},
+					"textMode": "auto"
+				},
+				"targets": [
+					{
+						"editorMode": "code",
+						"expr": "(sum(agent_session_turns_count_total{service_name=~\"$service\"}) or vector(0)) / clamp_min(sum(agent_session_sessions_count_total{service_name=~\"$service\"}), 1)",
+						"legendFormat": "turns per session",
+						"refId": "A"
+					}
+				],
+				"title": "Average turns per session (since process start)",
+				"type": "stat"
+			},
+			{
+				"datasource": {
+					"type": "tempo",
+					"uid": "tempo"
+				},
+				"gridPos": {
+					"h": 10,
+					"w": 24,
+					"x": 0,
+					"y": 40
+				},
+				"id": 9,
+				"targets": [
+					{
+						"datasource": {
+							"type": "tempo",
+							"uid": "tempo"
+						},
+						"query": "{ resource.service.name = \"$service\" }",
+						"queryType": "traceql",
+						"refId": "A"
+					}
+				],
+				"title": "Traces",
+				"type": "traces"
 			}
-		]
-	},
-	"time": { "from": "now-6h", "to": "now" },
-	"timepicker": {},
-	"timezone": "browser",
-	"title": "agenticDir Runtime Observability",
-	"uid": "agenticdir-runtime-observability",
-	"version": 1,
-	"weekStart": ""
+		],
+		"refresh": "30s",
+		"schemaVersion": 41,
+		"tags": ["agenticDir", "OpenTelemetry"],
+		"templating": {
+			"list": [
+				{
+					"current": {
+						"selected": true,
+						"text": "All",
+						"value": "$__all"
+					},
+					"datasource": {
+						"type": "prometheus",
+						"uid": "prometheus"
+					},
+					"definition": "label_values(llm_tokens_input_total, service_name)",
+					"includeAll": true,
+					"label": "Service",
+					"name": "service",
+					"options": [],
+					"query": {
+						"qryType": 1,
+						"query": "label_values(llm_tokens_input_total, service_name)",
+						"refId": "PrometheusVariableQueryEditor-VariableQuery"
+					},
+					"refresh": 2,
+					"regex": "",
+					"type": "query"
+				}
+			]
+		},
+		"time": {
+			"from": "now-6h",
+			"to": "now"
+		},
+		"timepicker": {},
+		"timezone": "browser",
+		"title": "agenticDir Runtime Observability",
+		"uid": "agenticdir-runtime-observability",
+		"version": 1,
+		"weekStart": ""
+	}
 }
